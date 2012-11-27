@@ -30,7 +30,8 @@
         </ComboBox>
         <Label Content="Convert to" Margin="0,474,101,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="66"/>
         <TextBox x:Name="foldername" Height="23" Margin="10,0,172,56" TextWrapping="Wrap" Text="P:\YoutubeDownloads" VerticalAlignment="Bottom"/>
-        <ProgressBar x:Name="progressBar" Height="25" Margin="0,0,0,26" VerticalAlignment="Bottom"/>
+        <ProgressBar x:Name="progressBar" Height="25" Margin="0,0,172,26" VerticalAlignment="Bottom"/>
         <Label x:Name="Log" Content="" VerticalAlignment="Bottom"/>
+        <CheckBox x:Name="ignoreDownloaded" Content="Ignore downloaded files" Margin="288,505,0,26"/>
     </Grid>
 </Window>

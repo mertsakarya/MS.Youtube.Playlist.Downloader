@@ -58,7 +58,7 @@ namespace MS.Youtube.Playlist.Downloader
                     _downloadItems.Add(item);
                 }
             }
-            _downloadItems.Download();
+            _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
         }
 
         private void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -106,7 +106,7 @@ namespace MS.Youtube.Playlist.Downloader
             {
                 var item = new DownloadItem(uri, (MediaType)Enum.Parse(typeof(MediaType), mediatype.Text), foldername.Text);
                 _downloadItems.Add(item);
-                _downloadItems.Download();
+                _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
             }
         }
     }

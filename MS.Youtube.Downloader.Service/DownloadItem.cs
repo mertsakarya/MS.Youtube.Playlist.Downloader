@@ -41,17 +41,20 @@ namespace MS.Youtube.Downloader.Service
 
     public class DownloadItems : ObservableCollection<DownloadItem>
     {
+        private bool _ignoreDownloaded;
         private readonly int _poolSize;
 
         public DownloadStatusEventHandler OnDownloadStatusChange;
 
         public DownloadItems(int poolSize = 3)
         {
+            _ignoreDownloaded = false;
             _poolSize = poolSize;
         }
 
-        public void Download()
+        public void Download(bool ignoreDownloaded)
         {
+            _ignoreDownloaded = ignoreDownloaded;
             foreach (var item in this) {
                 item.OnDownloadStateChange += OnDownloadStateChange;
             }
@@ -75,7 +78,7 @@ namespace MS.Youtube.Downloader.Service
         {
             var first = this.FirstOrDefault(item => item.Status.DownloadState == DownloadState.Initialized);
             if(first != null)
-                first.Download();
+                first.Download(_ignoreDownloaded);
         }
     }
 
@@ -147,16 +150,24 @@ namespace MS.Youtube.Downloader.Service
             Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
         }
 
-        public void Download()
+        public void Download(bool ignore = false)
         {
             if (Status.DownloadState != DownloadState.Initialized) 
                 return;
-            Status.DownloadState = DownloadState.DownloadStart; 
-            var client = new WebClient();
-            client.DownloadFileCompleted += DownloadFileCompleted;
-            client.DownloadProgressChanged += OnClientOnDownloadProgressChanged;
-            client.DownloadFileAsync(new Uri(VideoInfo.DownloadUrl), Path.Combine(_videoFolder, VideoInfo.Title + VideoInfo.Extension));
-            if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.DownloadStart);
+            Status.DownloadState = DownloadState.DownloadStart;
+            var videoFile = Path.Combine(_videoFolder, VideoInfo.Title + VideoInfo.Extension);
+            if (ignore && File.Exists(videoFile))
+            {
+                DownloadFileCompleted(null, new AsyncCompletedEventArgs(null, false, null));
+            }
+            else
+            {
+                var client = new WebClient();
+                client.DownloadFileCompleted += DownloadFileCompleted;
+                client.DownloadProgressChanged += OnClientOnDownloadProgressChanged;
+                client.DownloadFileAsync(new Uri(VideoInfo.DownloadUrl), videoFile);
+                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.DownloadStart);
+            }
         }
 
         private void OnClientOnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs args)
