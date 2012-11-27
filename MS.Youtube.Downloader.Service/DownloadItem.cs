@@ -156,12 +156,9 @@ namespace MS.Youtube.Downloader.Service
                 return;
             Status.DownloadState = DownloadState.DownloadStart;
             var videoFile = Path.Combine(_videoFolder, VideoInfo.Title + VideoInfo.Extension);
-            if (ignore && File.Exists(videoFile))
-            {
+            if (ignore && File.Exists(videoFile)) {
                 DownloadFileCompleted(null, new AsyncCompletedEventArgs(null, false, null));
-            }
-            else
-            {
+            } else {
                 var client = new WebClient();
                 client.DownloadFileCompleted += DownloadFileCompleted;
                 client.DownloadProgressChanged += OnClientOnDownloadProgressChanged;
