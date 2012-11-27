@@ -27,7 +27,7 @@ namespace MS.Youtube.Playlist.Downloader
         private void OnDownloadStatusChange(DownloadItem item, DownloadStatus status)
         {
             switch (status.DownloadState)
-            {
+            { 
                 case DownloadState.AllFinished:
                     Log.Content = "DONE!";
                     break;
