@@ -30,7 +30,7 @@ namespace MS.Youtube.Playlist.Downloader
             switch (status.DownloadState)
             { 
                 case DownloadState.AllFinished:
-                    Log.Content = "DONE!";
+                    Dispatcher.Invoke(() => { Log.Content = "DONE!"; });
                     break;
                 case DownloadState.DownloadProgressChanged:
                     Dispatcher.Invoke(() => { progressBar.Value = status.Percentage; });
