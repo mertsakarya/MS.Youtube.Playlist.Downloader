@@ -23,6 +23,35 @@ namespace MS.Youtube.Playlist.Downloader
             mediatype.SelectedIndex = 1;
             foldername.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\YoutubeDownloads";
             WebBrowser.Navigate(YoutubeVideoTextbox.Text);
+            var s = @"<html><head></head><body><form action='https://www.paypal.com/cgi-bin/webscr' method='post' target='_blank'>
+<input type='hidden' name='cmd' value='_s-xclick'>
+<input type='hidden' name='hosted_button_id' value='C79LKUFBTF66N'>
+<input type='image' src='https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif' border='0' name='submit' alt='PayPal - The safer, easier way to pay online!'>
+<img alt='' border='0' src='https://www.paypalobjects.com/en_US/i/scr/pixel.gif' width='1' height='1'>
+</form><script type='text/javascript'>
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-36629489-1']);
+_gaq.push(['_setDomainName', 'mertsakarya.com']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+<!-- start Mixpanel --><script type='text/javascript'>(function(c,a){window.mixpanel=a;var b,d,h,e;b=c.createElement('script');b.type='text/javascript';b.async=!0;b.src=('https:'===c.location.protocol?'https:':'http:')+'//cdn.mxpnl.com/libs/mixpanel-2.1.min.js';d=c.getElementsByTagName('script')[0];d.parentNode.insertBefore(b,d);a._i=[];a.init=function(b,c,f){function d(a,b){var c=b.split('.');2==c.length&&(a=a[c[0]],b=c[1]);a[b]=function(){a.push([b].concat(Array.prototype.slice.call(arguments,0)))}}var g=a;'undefined'!==typeof f?
+g=a[f]=[]:f='mixpanel';g.people=g.people||[];h='disable track track_pageview track_links track_forms register register_once unregister identify name_tag set_config people.identify people.set people.increment'.split(' ');for(e=0;e<h.length;e++)d(g,h[e]);a._i.push([b,c,f])};a.__SV=1.1})(document,window.mixpanel||[]);
+mixpanel.init('57dbc5e73fac491d3412da1aa74b0295');</script><!-- end Mixpanel -->
+<script type='text/javascript'>mixpanel.track('App run');
+function track(prm) {mixpanel.track(prm);} 
+function trackUser(prm) {mixpanel.track('GetUserPlaylists',{'username':prm});} 
+function trackPlaylist(prm) {mixpanel.track('GetPlaylist',{'playlistName':prm});}
+</script>
+</body></html>
+";
+            Paypal.NavigateToString(s);
+            Tabs.SelectedIndex = 2;
+
         }
 
         private void OnDownloadStatusChange(DownloadItem item, DownloadStatus status)
@@ -45,6 +74,7 @@ namespace MS.Youtube.Playlist.Downloader
             var items = _service.GetPlaylists(username.Text);
             numFound.Content = items.Count;
             listbox.ItemsSource = items;
+            MixpanelTrackUserName(username.Text);
         }
 
         private void Button_Click_3(object sender, RoutedEventArgs e) { DownloadList((listbox2.SelectedItems.Count > 0) ? listbox2.SelectedItems: listbox2.Items); }
@@ -60,7 +90,12 @@ namespace MS.Youtube.Playlist.Downloader
                 _downloadItems.Add(item);
             }
             _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
+            MixpanelTrack("DownloadList");
         }
+
+        private void MixpanelTrack(string action) { Paypal.InvokeScript("track", action); }
+        private void MixpanelTrackUserName(string name) { Paypal.InvokeScript("trackUser", name); }
+        private void MixpanelTrackPlaylist(string name) { Paypal.InvokeScript("trackPlaylist", name); }
 
         private void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -70,6 +105,8 @@ namespace MS.Youtube.Playlist.Downloader
                 var items = _service.GetPlaylist(_playlist);
                 numFound.Content = items.Count;
                 listbox2.ItemsSource = items;
+                MixpanelTrackPlaylist(_playlist.Title);
+
             }
         }
 
