@@ -4,7 +4,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:downloader="clr-namespace:MS.Youtube.Playlist.Downloader"
         x:Class="MS.Youtube.Playlist.Downloader.MainWindow"
-        Title="MS.Youtube.Playlist.Downloader" Height="700" Width="1000" AllowDrop="True" Drop="Window_Drop_1">
+        Title="MS Youtube Playlist Downloader" Height="700" Width="1000" AllowDrop="True" Drop="Window_Drop">
     <Grid Margin="0,0,0,0">
         <TabControl x:Name="Tabs">
             <TabItem Header="USER'S PLAYLISTS">
@@ -40,7 +40,7 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <Button x:Name="GetPlayListsButton" Grid.Row="0" Content="GET PLAYLISTS" Margin="0,60,10,0" VerticalAlignment="Top" Click="Button_Click_1" HorizontalAlignment="Right" Width="95" Height="31"/>
+                    <Button x:Name="GetPlayLists" Grid.Row="0" Content="GET PLAYLISTS" Margin="0,60,10,0" VerticalAlignment="Top" Click="GetPlayLists_Click" HorizontalAlignment="Right" Width="95" Height="31"/>
                     <TextBox x:Name="username" Grid.Row="0" Height="23" Margin="0,32,10,0" TextWrapping="Wrap" Text="mertsakarya" VerticalAlignment="Top" RenderTransformOrigin="0.494,-0.609" HorizontalAlignment="Right" Width="95"/>
                     <Label Content="USER NAME" Grid.Row="0" Margin="0,10,13,0" RenderTransformOrigin="0.289,0.462" HorizontalAlignment="Right" Width="96" Height="26" VerticalAlignment="Top"/>
                     <ListView x:Name="listbox2" Grid.Row="2" Margin="0,0,110,82" SelectionMode="Extended" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -62,12 +62,12 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <Button Content="DOWNLOAD" Grid.Row="2" HorizontalAlignment="Right" Margin="0,5,10,0" VerticalAlignment="Top" Width="95" Click="Button_Click_3" RenderTransformOrigin="0.529,3.55" Height="33"/>
+                    <Button Content="DOWNLOAD" Grid.Row="2" HorizontalAlignment="Right" Margin="0,5,9,0" VerticalAlignment="Top" Width="95" Click="PlaylistsDownload_Click" x:Name="PlaylistsDownload" Height="33" />
                 </Grid>
             </TabItem>
             <TabItem Header="PLAYLIST">
                 <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                    <TextBox x:Name="playlistUrl" Margin="10,10,110,0" TextWrapping="Wrap" Text="http://www.youtube.com/playlist?list=PL4964C41D44B87621" Height="48" VerticalAlignment="Top" FontWeight="Bold" FontSize="18"/>
+                    <TextBox x:Name="playlistUrl" Margin="10,10,110,0" TextWrapping="Wrap" Text="http://www.youtube.com/playlist?list=PL4964C41D44B87621" Height="48" VerticalAlignment="Top" FontWeight="Bold" FontSize="18" TextChanged="playlistUrl_TextChanged"/>
                     <ListView x:Name="listbox3" Margin="10,73,110,97" SelectionMode="Extended" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -87,16 +87,17 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <Button Content="DOWNLOAD" HorizontalAlignment="Right" Margin="0,73,10,0" VerticalAlignment="Top" Width="85" RenderTransformOrigin="0.529,3.55" Height="48" Grid.Column="2" Click="Button_Click_4"/>
-                    <Button x:Name="GetPlayListItemsButton" Content="GET PLAYLIST" Margin="0,9,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="85" Grid.Column="2" Click="GetPlayListItemsButton_Click" Height="48"/>
+                    <Button Content="DOWNLOAD" HorizontalAlignment="Right" Margin="0,73,10,0" VerticalAlignment="Top" Width="85" Height="48" Grid.Column="2" Click="PlaylistDownload_Click" x:Name="PlaylistDownload"/>
+                    <Button x:Name="GetPlayListItemsButton" Content="GET PLAYLIST" Margin="0,9,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="85" Click="GetPlayListItemsButton_Click" Height="48"/>
                 </Grid>
             </TabItem>
             <TabItem Header="YOUTUBE">
                 <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
                     <Label Content="URL:" Margin="0,10,0,0" HorizontalAlignment="Left" Width="44" Height="49" VerticalAlignment="Top"  FontWeight="Bold" FontSize="18"/>
-                    <TextBox x:Name="YoutubeVideoTextbox" Height="48" TextWrapping="Wrap" Text="http://www.youtube.com/" Margin="49,11,115,0" VerticalAlignment="Top" KeyDown="YoutubeVideoTextbox_KeyDown"  FontWeight="Bold" FontSize="18"/>
-                    <Button Content="DOWNLOAD" Margin="0,11,10,0" VerticalAlignment="Top" Click="Button_Click_2" HorizontalAlignment="Right" Width="100" Height="48" Grid.Column="1"/>
+                    <TextBox x:Name="YoutubeVideoTextbox" Height="47" TextWrapping="Wrap" Text="http://www.youtube.com/" Margin="49,11,229,0" VerticalAlignment="Top" KeyDown="YoutubeVideoTextbox_KeyDown"  FontWeight="Bold" FontSize="18" TextChanged="YoutubeVideoTextbox_TextChanged"/>
+                    <Button Content="DOWNLOAD" Margin="0,10,10,0" VerticalAlignment="Top" Click="UrlDownload_Click" HorizontalAlignment="Right" Width="110" Height="48" x:Name="UrlDownload"/>
                     <WebBrowser x:Name="WebBrowser" Margin="0,64,0,86" Navigating="WebBrowser_Navigating"/>
+                    <Button Content="GO TO URL" HorizontalAlignment="Right" Margin="0,11,155,0" VerticalAlignment="Top" Width="75" Height="47" Click="GoToUrl_Click" x:Name="GoToUrl"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -104,7 +105,7 @@
             <System:String>Audio</System:String>
             <System:String>Video</System:String>
         </ComboBox>
-        <Label Content="Convert to" Margin="0,0,101,56" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="66"/>
+        <Label Content="Convert to" Margin="0,0,101,56" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="66" x:Name="GoUrl"/>
         <TextBox x:Name="foldername" Height="23" Margin="113,0,392,56" TextWrapping="Wrap" Text="P:\YoutubeDownloads" VerticalAlignment="Bottom"/>
         <ProgressBar x:Name="progressBar" Height="25" Margin="10,0,392,26" VerticalAlignment="Bottom"/>
         <Label x:Name="Log" Content="" VerticalAlignment="Bottom" Margin="0,0,383,0"/>

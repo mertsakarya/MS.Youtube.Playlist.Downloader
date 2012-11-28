@@ -22,7 +22,7 @@ namespace MS.Youtube.Playlist.Downloader.Properties {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources {
+    public class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,7 +36,7 @@ namespace MS.Youtube.Playlist.Downloader.Properties {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("MS.Youtube.Playlist.Downloader.Properties.Resources", typeof(Resources).Assembly);
@@ -51,12 +51,25 @@ namespace MS.Youtube.Playlist.Downloader.Properties {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt;html&gt;&lt;head&gt;&lt;title&gt;MS Youtube Downloader Tracking page&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;form action=&apos;https://www.paypal.com/cgi-bin/webscr&apos; method=&apos;post&apos; target=&apos;_blank&apos;&gt;
+        ///&lt;input type=&apos;hidden&apos; name=&apos;cmd&apos; value=&apos;_s-xclick&apos;&gt;
+        ///&lt;input type=&apos;hidden&apos; name=&apos;hosted_button_id&apos; value=&apos;C79LKUFBTF66N&apos;&gt;
+        ///&lt;input type=&apos;image&apos; src=&apos;https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif&apos; border=&apos;0&apos; name=&apos;submit&apos; alt=&apos;PayPal - The safer, easier way to pay online!&apos;&gt;
+        ///&lt;img alt=&apos;&apos; border=&apos;0&apos; src=&apos;https://www.paypalobjects.com/en_US/i/ [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string TrackerHtml {
+            get {
+                return ResourceManager.GetString("TrackerHtml", resourceCulture);
             }
         }
     }

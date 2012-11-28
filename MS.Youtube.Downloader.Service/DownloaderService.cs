@@ -1,12 +1,30 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net;
 using Google.GData.Client;
 using Google.YouTube;
 
 namespace MS.Youtube.Downloader.Service
 {
+    public class YoutubeUrl
+    {
+        public Uri Uri { get; set; }
+        public UrlType Type { get; set; }
+        public string Id { get; set; }
+        public override string ToString()
+        {
+            return Uri.ToString();
+        }
+    }
+
+    public enum UrlType
+    {
+        Video,
+        Playlist,
+        User,
+        Unknown
+    }
+
     public class YoutubeEntry
     {
         public string Title { get; set; }
@@ -68,20 +86,60 @@ namespace MS.Youtube.Downloader.Service
             return GetYoutubeEntries(playlist);
         }
 
-        public string GetPlaylistId(Uri uri)
+        private static ObservableCollection<YoutubeEntry> GetYoutubeEntries<T>(Feed<T> items) where T : Video, new()
+        {
+            var list = new ObservableCollection<YoutubeEntry>();
+            try {
+                foreach (var member in items.Entries.Where(member => member.WatchPage != null)) {
+                    var firstOrDefault = member.Thumbnails.FirstOrDefault(t => t.Height == "90" && t.Width == "120");
+                    list.Add(new YoutubeEntry {
+                        Title = member.Title,
+                        WatchPage = member.WatchPage,
+                        Description = member.Description,
+                        ThumbnailUrl = (firstOrDefault != null) ? firstOrDefault.Url : ""
+                    });
+                }
+            } catch {}
+            return list;
+        }
+
+        public YoutubeUrl GetUrlType(string url)
+        {
+            Uri uri;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) return new YoutubeUrl {Type = UrlType.Unknown};
+            return GetUrlType(uri);
+        }
+
+        public YoutubeUrl GetUrlType(Uri uri)
+        {
+            var url = new YoutubeUrl {Uri = uri, Type = UrlType.Unknown};
+            if (uri.Host != "www.youtube.com") return url;
+            var arr = uri.AbsolutePath.Substring(1).Split('/');
+            if (arr[0].ToLowerInvariant() == "user") {
+                url.Id = arr[1];
+                url.Type = UrlType.User;
+                return url;
+            }
+            if (arr[0].ToLowerInvariant() == "watch") {
+                url.Id = GetVideoId(uri);
+                url.Type = UrlType.Video;
+                return url;
+            }
+            url.Id = GetPlaylistId(uri);
+            if (!String.IsNullOrEmpty(url.Id)) url.Type = UrlType.Playlist;
+            return url;
+        }
+
+        private string GetVideoId(Uri uri)
         {
             var queryItems = uri.Query.Split('&');
             string id = "";
-            if (queryItems.Length > 0 && !String.IsNullOrEmpty(queryItems[0]))
-            {
-                foreach (var queryItem in queryItems)
-                {
+            if (queryItems.Length > 0 && !String.IsNullOrEmpty(queryItems[0])) {
+                foreach (var queryItem in queryItems) {
                     var item = queryItem;
                     if (item[0] == '?') item = item.Substring(1);
-                    if (item.Substring(0, 5).ToLowerInvariant() == "list=")
-                    {
-                        id = item.Substring(5);
-                        if (id.Substring(0, 2).ToLowerInvariant() == "pl") id = id.Substring(2);
+                    if (item.Substring(0, 2).ToLowerInvariant() == "v=") {
+                        id = item.Substring(2);
                         break;
                     }
                 }
@@ -89,17 +147,22 @@ namespace MS.Youtube.Downloader.Service
             return id;
         }
 
-        private static ObservableCollection<YoutubeEntry> GetYoutubeEntries<T>(Feed<T> items) where T : Video, new()
+        private string GetPlaylistId(Uri uri)
         {
-            var list = new ObservableCollection<YoutubeEntry>();
-            
-            foreach (var member in items.Entries.Where(member => member.WatchPage != null))
-            {
-                var firstOrDefault = member.Thumbnails.FirstOrDefault(t => t.Height == "90" && t.Width == "120");
-                    list.Add(new YoutubeEntry { Title = member.Title, WatchPage = member.WatchPage, Description = member.Description, 
-                        ThumbnailUrl = (firstOrDefault != null) ? firstOrDefault.Url : ""});
+            var queryItems = uri.Query.Split('&');
+            string id = "";
+            if (queryItems.Length > 0 && !String.IsNullOrEmpty(queryItems[0])) {
+                foreach (var queryItem in queryItems) {
+                    var item = queryItem;
+                    if (item[0] == '?') item = item.Substring(1);
+                    if (item.Substring(0, 5).ToLowerInvariant() == "list=") {
+                        id = item.Substring(5);
+                        if (id.Substring(0, 2).ToLowerInvariant() == "pl") id = id.Substring(2);
+                        break;
+                    }
+                }
             }
-            return list;
+            return id;
         }
 
         //public ObservableCollection<YoutubeEntry> TryGetFeed(Uri uri)

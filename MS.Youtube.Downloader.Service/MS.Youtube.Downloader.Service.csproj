@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="DownloaderService.cs" />
     <Compile Include="DownloadItem.cs" />
+    <Compile Include="LocalService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
