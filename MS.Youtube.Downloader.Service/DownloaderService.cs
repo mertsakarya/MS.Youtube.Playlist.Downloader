@@ -3,40 +3,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Google.GData.Client;
 using Google.YouTube;
+using MS.Youtube.Downloader.Service.Youtube;
 
 namespace MS.Youtube.Downloader.Service
 {
-    public class YoutubeUrl
-    {
-        public Uri Uri { get; set; }
-        public UrlType Type { get; set; }
-        public string Id { get; set; }
-        public override string ToString()
-        {
-            return Uri.ToString();
-        }
-    }
-
-    public enum UrlType
-    {
-        Video,
-        Playlist,
-        User,
-        Unknown
-    }
-
-    public class YoutubeEntry
-    {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string ThumbnailUrl { get; set; }
-        public Uri WatchPage { get; set; }
-        public override string ToString()
-        {
-            return Title;
-        }
-    }
-
     public class DownloaderService
     {
         private readonly YouTubeRequestSettings _settings;
@@ -99,35 +69,67 @@ namespace MS.Youtube.Downloader.Service
                         ThumbnailUrl = (firstOrDefault != null) ? firstOrDefault.Url : ""
                     });
                 }
-            } catch {}
+            }
+            catch {
+                //
+            }
             return list;
         }
 
         public YoutubeUrl GetUrlType(string url)
         {
             Uri uri;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) return new YoutubeUrl {Type = UrlType.Unknown};
+            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) return new YoutubeUrl {Type = YoutubeUrlType.Unknown};
             return GetUrlType(uri);
         }
 
-        public YoutubeUrl GetUrlType(Uri uri)
+        public YoutubeUrl GetUrlType(Uri u)
         {
-            var url = new YoutubeUrl {Uri = uri, Type = UrlType.Unknown};
+            var url = new YoutubeUrl {Uri = u, Type = YoutubeUrlType.Unknown};
+
+            var surl = u.ToString();
+            if (surl.StartsWith("https://")) {
+                surl = "http://" + surl.Substring(8);
+            } else if (!surl.StartsWith("http://")) {
+                surl = "http://" + url;
+            }
+
+            surl = surl.Replace("youtu.be/", "youtube.com/watch?v=");
+            surl = surl.Replace("www.youtube.com", "youtube.com");
+
+            if (surl.StartsWith("http://youtube.com/v/")) {
+                surl = surl.Replace("youtube.com/v/", "youtube.com/watch?v=");
+            } else if (surl.StartsWith("http://youtube.googleapis.com/v")) {
+                surl = surl.Replace("youtube.googleapis.com/v/", "youtube.com/watch?v=");
+            } else if (surl.StartsWith("http://youtube.com/watch#")) {
+                surl = surl.Replace("youtube.com/watch#", "youtube.com/watch?");
+            }
+            surl = surl.Replace("//youtube.com", "//www.youtube.com");
+            var uri = new Uri(surl);
+            url.Uri = uri;
             if (uri.Host != "www.youtube.com") return url;
             var arr = uri.AbsolutePath.Substring(1).Split('/');
             if (arr[0].ToLowerInvariant() == "user") {
                 url.Id = arr[1];
-                url.Type = UrlType.User;
-                return url;
-            }
-            if (arr[0].ToLowerInvariant() == "watch") {
-                url.Id = GetVideoId(uri);
-                url.Type = UrlType.Video;
+                url.Type = YoutubeUrlType.User;
                 return url;
             }
             url.Id = GetPlaylistId(uri);
-            if (!String.IsNullOrEmpty(url.Id)) url.Type = UrlType.Playlist;
-            return url;
+            if (!String.IsNullOrEmpty(url.Id)) {
+                url.Type = YoutubeUrlType.Playlist;
+                return url;
+            }
+            try {
+                if (arr[0].ToLowerInvariant() == "watch") {
+                    url.Id = GetVideoId(uri);
+                    url.Type = YoutubeUrlType.Video;
+                    url.Uri = uri;
+                }
+                return url;
+            }
+            catch {
+                return url;
+            }
         }
 
         private string GetVideoId(Uri uri)

@@ -5,11 +5,6 @@ using Newtonsoft.Json;
 
 namespace MS.Youtube.Downloader.Service
 {
-    public class ApplicationConfiguration
-    {
-        public Guid Guid { get; set; }
-    }
-
     public class LocalService
     {
         public string CompanyFolder { get; private set; }
