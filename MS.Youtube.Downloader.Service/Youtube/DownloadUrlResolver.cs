@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace MS.Youtube.Downloader.Service.Youtube
@@ -32,7 +33,42 @@ namespace MS.Youtube.Downloader.Service.Youtube
 
             try {
                 var downloadUrls = ExtractDownloadUrls(decoded);
+                return GetVideoInfos(downloadUrls, videoTitle);
+            } catch (Exception ex) {
+                ThrowYoutubeParseException(ex);
+            }
 
+            if (IsVideoUnavailable(pageSource)) {
+                throw new Exception("Video not available");
+            }
+
+            // If everything else fails, throw a generic YoutubeParseException
+            ThrowYoutubeParseException(null);
+
+            return null; // Will never happen, but the compiler requires it
+        }
+
+        public static async Task<IEnumerable<VideoInfo>> GetDownloadUrlsAsync(string videoUrl)
+        {
+            if (videoUrl == null)
+                throw new ArgumentNullException("videoUrl");
+
+            videoUrl = NormalizeYoutubeUrl(videoUrl);
+
+            var pageSource = await GetPageSourceAsync(videoUrl);
+            var videoTitle = GetVideoTitle(pageSource);
+
+            var id = HttpUtility.ParseQueryString(new Uri(videoUrl).Query)["v"];
+
+            var requestUrl = String.Format("http://www.youtube.com/get_video_info?&video_id={0}&el=detailpage&ps=default&eurl=&gl=US&hl=en", id);
+
+            var source = GetPageSource(requestUrl);
+
+            var decoded = HttpUtility.UrlDecode(source);
+            decoded = HttpUtility.UrlDecode(decoded);
+
+            try {
+                var downloadUrls = ExtractDownloadUrls(decoded);
                 return GetVideoInfos(downloadUrls, videoTitle);
             } catch (Exception ex) {
                 ThrowYoutubeParseException(ex);
@@ -65,6 +101,18 @@ namespace MS.Youtube.Downloader.Service.Youtube
             return urls;
         }
 
+        private static async Task<string> GetPageSourceAsync(string videoUrl)
+        {
+            string pageSource;
+            var req = WebRequest.Create(videoUrl);
+
+            using (var resp = await req.GetResponseAsync()) {
+                var stream = resp.GetResponseStream();
+                pageSource = stream != null ? new StreamReader(stream, Encoding.UTF8).ReadToEnd() : "";
+            }
+            return pageSource;
+        }
+
         private static string GetPageSource(string videoUrl)
         {
             string pageSource;
@@ -81,7 +129,7 @@ namespace MS.Youtube.Downloader.Service.Youtube
         {
             var downLoadInfos = new List<VideoInfo>();
 
-            foreach (Uri url in downloadUrls) {
+            foreach (var url in downloadUrls) {
                 var queryString = HttpUtility.ParseQueryString(url.Query);
 
                 // for this version, only get the download URL

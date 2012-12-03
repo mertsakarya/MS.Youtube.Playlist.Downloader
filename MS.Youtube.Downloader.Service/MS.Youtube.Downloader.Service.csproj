@@ -35,6 +35,12 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>MS.Youtube.Playlist.Downloader.Key.pfx</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Google.GData.Client">
       <HintPath>..\packages\Google.GData.Client.2.1.0.0\lib\Google.GData.Client.dll</HintPath>
@@ -81,6 +87,7 @@
     <Compile Include="Youtube\YoutubeUrl.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="MS.Youtube.Playlist.Downloader.Key.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

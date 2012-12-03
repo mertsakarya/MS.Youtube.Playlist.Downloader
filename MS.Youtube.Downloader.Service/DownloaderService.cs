@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Google.GData.Client;
 using Google.YouTube;
 using MS.Youtube.Downloader.Service.Youtube;
@@ -21,39 +22,48 @@ namespace MS.Youtube.Downloader.Service
             _settings.PageSize = 50;
         }
 
-        public ObservableCollection<Playlist> GetPlaylists(string user, int startIndex = 1)
+        public async Task<ObservableCollection<Playlist>> GetPlaylistsAsync (string user, int startIndex = 1)
         {
             var request = new YouTubeRequest(_settings);
             var list = new ObservableCollection<Playlist>();
             list.Add(new Playlist {Title = "Favorites", Content = user});
-            var items = request.GetPlaylistsFeed(user);
-            foreach (var playlist in items.Entries)
-            {
-                list.Add(playlist);
-
-            }
+            await Task.Factory.StartNew(() => {
+                var items = request.GetPlaylistsFeed(user);
+                foreach (var playlist in items.Entries) {
+                    list.Add(playlist);
+                }
+            }).ConfigureAwait(false);
             return list;
         }
 
-        public ObservableCollection<YoutubeEntry> GetPlaylist(Playlist playlist)
+        public async Task<ObservableCollection<YoutubeEntry>> GetPlaylistAsync(Playlist playlist)
         {
             var request = new YouTubeRequest(_settings);
             if (playlist.Title == "Favorites") {
-                var items = request.GetFavoriteFeed(playlist.Content);
+                Feed<Video> items = null;
+                await Task.Factory.StartNew(() => {
+                    items = request.GetFavoriteFeed(playlist.Content);
+                }).ConfigureAwait(false); 
                 return GetYoutubeEntries(items);
             } else {
-                var items = request.GetPlaylist(playlist);
+                Feed<PlayListMember> items = null;
+                await Task.Factory.StartNew(() => {
+                    items = request.GetPlaylist(playlist);
+                }).ConfigureAwait(false);
                 return GetYoutubeEntries(items);
             }
         }
 
-        public ObservableCollection<YoutubeEntry> GetPlaylist(Uri uri)
+        public async Task<ObservableCollection<YoutubeEntry>> GetPlaylistAsync(Uri uri)
         {
             var id = GetPlaylistId(uri);
-            if(String.IsNullOrEmpty(id))return new ObservableCollection<YoutubeEntry>();
+            if(String.IsNullOrEmpty(id)) return new ObservableCollection<YoutubeEntry>();
             var request = new YouTubeRequest(_settings);
-            var playlist = request.Get<PlayListMember>(new Uri("http://gdata.youtube.com/feeds/api/playlists/" + id));
-            return GetYoutubeEntries(playlist);
+            Feed<PlayListMember> items = null;
+            await Task.Factory.StartNew(() => {
+                items = request.Get<PlayListMember>(new Uri("http://gdata.youtube.com/feeds/api/playlists/" + id));
+            }).ConfigureAwait(false);
+            return GetYoutubeEntries(items);
         }
 
         private static ObservableCollection<YoutubeEntry> GetYoutubeEntries<T>(Feed<T> items) where T : Video, new()

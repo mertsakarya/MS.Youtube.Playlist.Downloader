@@ -100,6 +100,11 @@
                     <Button Content="GO TO URL" HorizontalAlignment="Right" Margin="0,11,155,0" VerticalAlignment="Top" Width="75" Height="47" Click="GoToUrl_Click" x:Name="GoToUrl"/>
                 </Grid>
             </TabItem>
+            <TabItem Header="LOG">
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
+                    <TextBlock x:Name="LogBox" HorizontalAlignment="Stretch" Margin="0,0,0,91" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                </Grid>
+            </TabItem>
         </TabControl>
         <ComboBox x:Name="mediatype" HorizontalAlignment="Right" Margin="0,0,20,61" Width="76" Text="Audio" Height="22" VerticalAlignment="Bottom">
             <System:String>Audio</System:String>

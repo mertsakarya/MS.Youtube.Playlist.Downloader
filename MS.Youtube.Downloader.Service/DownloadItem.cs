@@ -1,12 +1,10 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Google.GData.Client;
-using Google.YouTube;
 using MS.Youtube.Downloader.Service.Youtube;
 
 namespace MS.Youtube.Downloader.Service
@@ -18,6 +16,7 @@ namespace MS.Youtube.Downloader.Service
         private readonly string _applicationPath;
         private readonly string _downloadFolder;
         private readonly string _videoFolder;
+        private bool _ignoreIfFileExists;
 
         public VideoInfo VideoInfo { get; private set; }
         public Uri Uri { get; private set; }
@@ -25,11 +24,9 @@ namespace MS.Youtube.Downloader.Service
         public MediaType MediaType { get; private set; }
         public Guid Guid { get; private set; }
         public DownloadStatus Status { get; set; }
+        public string ChannelName { get; set; }
 
-
-        public string Message { get; private set; }
-
-        internal DownloadItemEventHandler OnDownloadStateChange;
+        internal DownloadStatusEventHandler OnDownloadStatusChange;
 
         public DownloadItem(Entry playlist, Uri uri, MediaType mediaType, string baseFolder)
         {
@@ -38,7 +35,7 @@ namespace MS.Youtube.Downloader.Service
             _applicationPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             Uri = uri;
             var playlistName = (playlist == null) ? "" : "\\" + playlist.Title;
-
+            ChannelName = (playlist == null) ? "" : playlist.Title;
 
             if (!Directory.Exists(BaseFolder)) Directory.CreateDirectory(BaseFolder);
 
@@ -52,125 +49,95 @@ namespace MS.Youtube.Downloader.Service
             _downloadFolder += playlistName;
             if (!Directory.Exists(_downloadFolder)) Directory.CreateDirectory(_downloadFolder);
 
-            Message = "Initialized";
             Guid = Guid.NewGuid();
 
             VideoInfo = null;
             Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
         }
 
-        public void Download(bool ignore = false)
+        public async void DownloadAsync(bool ignore = false)
         {
+            _ignoreIfFileExists = ignore;
             if (Status.DownloadState != DownloadState.Initialized) return;
-            var videoInfos = DownloadUrlResolver.GetDownloadUrls(Uri.ToString());
-            VideoInfo = videoInfos.First(info => info.VideoType == VideoType.Mp4 && info.Resolution == 360);
-
+            var videoInfos = await DownloadUrlResolver.GetDownloadUrlsAsync(Uri.ToString());
+            VideoInfo = videoInfos.FirstOrDefault(info => info.VideoType == VideoType.Mp4 && info.Resolution == 360);
+            if (VideoInfo == null) {
+                Status.DownloadState = DownloadState.Error;
+                Status.Percentage = 100.0;
+                Status.UserData = "SKIPPING! No MP4 with 360 pixel resolution";
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                return;
+            }
             Status.DownloadState = DownloadState.DownloadStart;
             var videoFile = Path.Combine(_videoFolder, VideoInfo.Title + VideoInfo.VideoExtension);
-            if (ignore && File.Exists(videoFile)) {
-                DownloadFileCompleted(null, new AsyncCompletedEventArgs(null, false, null));
-            } else {
-                var client = new WebClient();
-                client.DownloadFileCompleted += DownloadFileCompleted;
-                client.DownloadProgressChanged += OnClientOnDownloadProgressChanged;
 
-                client.DownloadFileAsync(new Uri(VideoInfo.DownloadUrl), videoFile, this);
-                
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.DownloadStart);
+            if (!_ignoreIfFileExists || !File.Exists(videoFile))
+                await DownloadToFileAsync(new Uri(VideoInfo.DownloadUrl), videoFile);
+
+            Status.DownloadState = DownloadState.DownloadFinish;
+            Status.Percentage = 100.0;
+            if (MediaType == MediaType.Audio)
+                ConvertToMp3();
+            else if (OnDownloadStatusChange != null) {
+                Status.DownloadState = DownloadState.Ready;
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
             }
         }
 
-        private void OnClientOnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs args)
+        private static async Task DownloadToFileAsync(Uri uri, string fileName)
         {
-            Status.DownloadState = DownloadState.DownloadProgressChanged;
-            Status.Percentage = args.ProgressPercentage;
-            if (OnDownloadStateChange != null)
-                OnDownloadStateChange(this, DownloadState.DownloadProgressChanged, args.ProgressPercentage);
-        }
-
-        private void DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-            if (e.Error != null) {
-                Message = e.Error.Message;
-                Status.DownloadState = DownloadState.Error;
-                Status.Percentage = 100.0;
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.Error);
-            } else {
-                Status.DownloadState = DownloadState.DownloadFinish;
-                Status.Percentage = 100.0;
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.DownloadFinish);
-                if (MediaType == MediaType.Audio) 
-                    ConvertToMp3();
-                else if (OnDownloadStateChange != null)
-                {
-                    Status.DownloadState = DownloadState.Ready; 
-                    OnDownloadStateChange(this, DownloadState.Ready);
+            var req = WebRequest.Create(uri);
+            using (var resp = await req.GetResponseAsync()) {
+                using (var stream = resp.GetResponseStream()) {
+                    using (var destinationStream = File.Create(fileName)) {
+                        if (stream != null) {
+                            await stream.CopyToAsync(destinationStream);
+                        }
+                    }
                 }
             }
         }
 
         private void ConvertToMp3()
         {
-            if (Status.DownloadState == DownloadState.ConvertAudioStart || Status.DownloadState == DownloadState.Ready ||
-                Status.DownloadState == DownloadState.Error)
-                return;
-            Status.DownloadState = DownloadState.ConvertAudioStart; 
+            if (Status.DownloadState != DownloadState.DownloadFinish) return;
             var audioFile = Path.Combine(_downloadFolder, VideoInfo.Title) + ".mp3";
             var videoFile = Path.Combine(_videoFolder, VideoInfo.Title) + VideoInfo.VideoExtension;
-            if (!File.Exists(videoFile)) return;
-            if (File.Exists(audioFile)) File.Delete(audioFile);
-            var process = new Process {
-                EnableRaisingEvents = true,
-                StartInfo = {
-                    FileName = _applicationPath + "\\Executables\\ffmpeg.exe",
-                    Arguments = String.Format("-i \"{0}\" -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, audioFile),
-                    CreateNoWindow = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                }
-            };
-            //process.Exited += ProcessExited;
-            try {
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.ConvertAudioStart);
-                process.Start();
-                if (!process.WaitForExit(25000)) {
-                    process.Kill();
-                    process.WaitForExit(5000);
-                }
-                Message = process.StandardError.ReadToEnd();
-                var state = (process.ExitCode == 0) ? DownloadState.Ready : DownloadState.Error;
-                Status.DownloadState = state;
+            if (_ignoreIfFileExists && File.Exists(audioFile)) {
+                Status.DownloadState = DownloadState.Ready;
                 Status.Percentage = 100.0;
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, state);
-            }
-            catch (Exception e)
-            {
-                Message = e.Message;
-                Status.DownloadState = DownloadState.Error;
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.Error);
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+            } else {
+                if (File.Exists(audioFile)) File.Delete(audioFile);
+                if (!File.Exists(videoFile)) return;
+                var titleParameter = (String.IsNullOrEmpty(VideoInfo.Title)) ? "": String.Format(" -metadata title=\"{0}\"", VideoInfo.Title);
+                var albumParameter = (String.IsNullOrEmpty(ChannelName)) ? "": String.Format(" -metadata album=\"{0}\"", ChannelName);
+                var process = new Process {
+                    EnableRaisingEvents = true,
+                    StartInfo = {
+                        FileName = _applicationPath + "\\Executables\\ffmpeg.exe",
+                        Arguments = String.Format("-i \"{0}\" {2}{3} -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, audioFile, titleParameter, albumParameter),
+                        CreateNoWindow = true,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false
+                    }
+                };
+                try {
+                    process.Start();
+                    if (!process.WaitForExit(25000)) { process.Kill(); process.WaitForExit(5000); }
+                    var state = (process.ExitCode == 0) ? DownloadState.Ready : DownloadState.Error;
+                    Status.DownloadState = state;
+                    Status.Percentage = 100.0;
+                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                }
+                catch (Exception) {
+                    Status.DownloadState = DownloadState.Error;
+                    Status.Percentage = 100.0;
+                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                }
             }
         }
 
-        private void ProcessExited(object sender, EventArgs e)
-        {
-            var process = sender as Process;
-            if (process == null) return;
-            Debug.Write(process.ExitCode);
-            if (process.ExitCode == 0)
-            {
-                Status.DownloadState = DownloadState.Ready;
-                Message = process.StandardError.ReadToEnd();
-                Debug.Write(Message);
-                Debug.Write(process.StandardOutput.ReadToEnd());
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.Ready);
-            } else {
-                Message = process.StandardError.ReadToEnd();
-                Debug.Write(Message);
-                Debug.Write(process.StandardOutput.ReadToEnd());
-                Status.DownloadState = DownloadState.Error;
-                if (OnDownloadStateChange != null) OnDownloadStateChange(this, DownloadState.Error);
-            }
-        }
     }
 }
