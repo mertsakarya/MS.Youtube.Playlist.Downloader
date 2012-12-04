@@ -18,6 +18,7 @@ namespace MS.Youtube.Downloader.Service
 
         public LocalService(Assembly assembly = null)
         {
+            
             FirstTime = false;
             var assm = assembly ?? Assembly.GetEntryAssembly();
             //var at = typeof(AssemblyCompanyAttribute);

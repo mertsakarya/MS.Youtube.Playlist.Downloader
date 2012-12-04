@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Google.GData.Client;
 using MS.Youtube.Downloader.Service.Youtube;
+using VideoInfo = MS.Youtube.Downloader.Service.Youtube.VideoInfo;
 
 namespace MS.Youtube.Downloader.Service
 {

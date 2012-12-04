@@ -45,14 +45,35 @@ namespace MS.Youtube.Playlist.Downloader
             Dispatcher.Invoke(() => LogBoxLog(item, status.DownloadState));
             switch (status.DownloadState) {
                 case DownloadState.AllFinished:
-                    Dispatcher.Invoke(() => { Log.Content = "DONE!"; });
+                    Dispatcher.Invoke(() => {
+                        Log.Content = "DONE!";
+                        progressBar.Value = 0;
+                        LogBox.Text = String.Format("Finished {1} files.\r\n{0}", LogBox.Text, _downloadItems.Count);
+                        foreach(var d in _downloadItems)
+                            if (d.Status.DownloadState == DownloadState.Error) {
+                                LogBox.Text = String.Format("Error [{2}]: {1}\r\n{0}", LogBox.Text, d.Uri, d.Status.UserData ?? "");
+                            }
+
+                        _downloadItems.Clear();
+                    });
                     break;
                 case DownloadState.DownloadProgressChanged:
                     Dispatcher.Invoke(() => { progressBar.Value = status.Percentage; });
                     break;
             }
             if (item != null) {
-                Dispatcher.Invoke(() => { Log.Content = item.VideoInfo.Title ?? ""; });
+                Dispatcher.Invoke(() => {
+                    var title = "";
+                    if (item.VideoInfo != null && item.VideoInfo.Title != null)
+                        title = item.VideoInfo.Title;
+                    else if (item.VideoInfo != null && item.VideoInfo.DownloadUrl != null)
+                        title = item.VideoInfo.DownloadUrl;
+                    else if (item.Uri != null)
+                        title = item.Uri.ToString();
+                    else
+                        title = item.Guid.ToString();
+                    Log.Content = title;
+                });
             }
         }
 
@@ -75,6 +96,9 @@ namespace MS.Youtube.Playlist.Downloader
         private async void GetPlayLists_Click(object sender, RoutedEventArgs e)
         {
             var items = await _service.GetPlaylistsAsync(username.Text);
+            //var coll = new ObservableCollection<Google.YouTube.Playlist>();
+            //foreach(var item in items)
+            //    coll.Add(item);
             numFound.Content = items.Count;
             listbox.ItemsSource = items;
             PlaylistsDownload.IsEnabled = false;
@@ -95,8 +119,8 @@ namespace MS.Youtube.Playlist.Downloader
         {
             if (_playlist == null) return;
             foreach (YoutubeEntry member in list) {
-                if (member.WatchPage == null) continue;
-                var item = new DownloadItem(_playlist, member.WatchPage, (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
+                if (String.IsNullOrEmpty(member.Url)) continue;
+                var item = new DownloadItem(_playlist, new Uri(member.Url), (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
                 _downloadItems.Add(item);
             }
             _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
@@ -106,13 +130,13 @@ namespace MS.Youtube.Playlist.Downloader
         private async void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _playlist = listbox.SelectedItem as Google.YouTube.Playlist;
-            PlaylistsDownload.IsEnabled = (_playlist != null);
-            if (_playlist != null) {
-                var items = await _service.GetPlaylistAsync(_playlist);
-                numFound.Content = items.Count;
-                listbox2.ItemsSource = items;
-                MixpanelTrack("Get Playlist", new {_playlist.Title, items.Count, Url = _playlist.PlaylistsEntry.AlternateUri});
-            }
+            PlaylistsDownload.IsEnabled = false;
+            if (_playlist == null) return;
+            var items = await _service.GetPlaylistAsync(_playlist);
+            numFound.Content = items.Count;
+            PlaylistsDownload.IsEnabled = items.Count > 0;
+            listbox2.ItemsSource = items;
+            MixpanelTrack("Get Playlist", new {_playlist.Title, items.Count, Url = _playlist.PlaylistsEntry.AlternateUri});
         }
 
         private void Window_Drop(object sender, DragEventArgs e)

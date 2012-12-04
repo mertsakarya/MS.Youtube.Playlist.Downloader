@@ -45,10 +45,8 @@ Technology
 * Built for pure high-end Windows boxes.
 * Here is the download link again, in case you missed it above.
 
-Contact me if necessary,
-mertsakarya@hotmail.com
-
-Planned improvements:
+Planned improvements
+--------------------
 
 * Ability to understand other feeds (playlists, channels, histories)
 * Youtube user authentication.
@@ -61,4 +59,7 @@ Planned improvements:
 * Porting to Metro Application.
 * Windows Mobile support.
 * Amazon S3 support.
+
+Contact,
+mertsakarya@hotmail.com
 
