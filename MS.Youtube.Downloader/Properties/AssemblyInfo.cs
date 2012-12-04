@@ -7,11 +7,11 @@ using System.Windows;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MS.Youtube.Playlist.Downloader")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("MS.Youtube.Downloader")]
+[assembly: AssemblyDescription("A video (MP4) and audio (MP3) downloader for Youtube")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("MS.Youtube.Playlist.Downloader")]
+[assembly: AssemblyCompany("Mert Sakarya")]
+[assembly: AssemblyProduct("MS Youtube Downloader")]
 [assembly: AssemblyCopyright("Copyright ©  2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

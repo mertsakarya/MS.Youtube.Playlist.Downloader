@@ -5,7 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Windows;
 
-namespace MS.Youtube.Playlist.Downloader
+namespace MS.Youtube.Downloader
 {
     /// <summary>
     /// Interaction logic for App.xaml

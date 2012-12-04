@@ -7,7 +7,7 @@ using MS.Youtube.Downloader.Service;
 using MS.Youtube.Downloader.Service.Youtube;
 using Newtonsoft.Json;
 
-namespace MS.Youtube.Playlist.Downloader
+namespace MS.Youtube.Downloader
 {
     public partial class MainWindow
     {
