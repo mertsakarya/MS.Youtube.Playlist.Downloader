@@ -78,13 +78,14 @@
     <Compile Include="LocalService.cs" />
     <Compile Include="MediaType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Youtube\ContentProviderType.cs" />
     <Compile Include="Youtube\YoutubeEntry.cs" />
     <Compile Include="Youtube\AudioType.cs" />
     <Compile Include="Youtube\VideoType.cs" />
-    <Compile Include="Youtube\YoutubeUrlType.cs" />
+    <Compile Include="Youtube\VideoUrlType.cs" />
     <Compile Include="Youtube\DownloadUrlResolver.cs" />
     <Compile Include="Youtube\VideoInfo.cs" />
-    <Compile Include="Youtube\YoutubeUrl.cs" />
+    <Compile Include="Youtube\VideoUrl.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

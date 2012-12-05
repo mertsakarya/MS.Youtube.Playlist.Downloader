@@ -1,9 +1,9 @@
 ﻿namespace MS.Youtube.Downloader.Service.Youtube
 {
-    public enum YoutubeUrlType
+    public enum VideoUrlType
     {
         Video,
-        Playlist,
+        Channel,
         User,
         Unknown
     }

@@ -24,8 +24,8 @@ namespace MS.Youtube.Downloader
             _downloadItems = new DownloadItems();
             _downloadItems.OnDownloadStatusChange += OnDownloadStatusChange;
             mediatype.SelectedIndex = 1;
-            foldername.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\YoutubeDownloads";
-            WebBrowser.Navigate(YoutubeVideoTextbox.Text);
+            foldername.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\MS.Video.Downloader";
+            WebBrowser.Navigate(VideoTextbox.Text);
             var firstTimeString = (_settings.FirstTime
                                        ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});"
                                        : "");
@@ -33,6 +33,9 @@ namespace MS.Youtube.Downloader
                                        .Replace("|0|", _settings.Guid.ToString())
                                        .Replace("|1|", firstTimeString)
                                        .Replace("|2|", _settings.Version);
+            var contentProviders = Enum.GetNames(typeof(ContentProviderType));
+            PlaylistsProvider.ItemsSource = contentProviders;
+            PlaylistsProvider.SelectedIndex = 0;
             Paypal.NavigateToString(paypalHtml);
             Tabs.SelectedIndex = 2;
             PlaylistDownload.IsEnabled = false;
@@ -118,7 +121,7 @@ namespace MS.Youtube.Downloader
         private void DownloadList(IEnumerable list)
         {
             if (_playlist == null) return;
-            foreach (YoutubeEntry member in list) {
+            foreach (VideoEntry member in list) {
                 if (String.IsNullOrEmpty(member.Url)) continue;
                 var item = new DownloadItem(_playlist, new Uri(member.Url), (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
                 _downloadItems.Add(item);
@@ -143,22 +146,22 @@ namespace MS.Youtube.Downloader
         {
             if (!e.Data.GetDataPresent(DataFormats.StringFormat)) return;
             var dataString = (string) e.Data.GetData(DataFormats.StringFormat);
-            var url = _service.GetUrlType(dataString);
+            var url = VideoUrl.Create(dataString);
             switch (url.Type) {
-                case YoutubeUrlType.User:
+                case VideoUrlType.User:
                     Tabs.SelectedIndex = 0;
                     username.Text = url.Id;
                     GetPlayLists_Click(null, null);
                     break;
-                case YoutubeUrlType.Playlist:
+                case VideoUrlType.Channel:
                     Tabs.SelectedIndex = 1;
                     playlistUrl.Text = url.ToString();
                     GetPlayListItemsButton_Click(null, null);
                     break;
-                case YoutubeUrlType.Video:
+                case VideoUrlType.Video:
                     Tabs.SelectedIndex = 2;
-                    YoutubeVideoTextbox.Text = url.ToString();
-                    Navigate(YoutubeVideoTextbox.Text);
+                    VideoTextbox.Text = url.ToString();
+                    Navigate(VideoTextbox.Text);
                     break;
             }
         }
@@ -167,7 +170,7 @@ namespace MS.Youtube.Downloader
         {
             _downloadItems.Clear();
             Uri uri;
-            if (!Uri.TryCreate(YoutubeVideoTextbox.Text, UriKind.Absolute, out uri)) return;
+            if (!Uri.TryCreate(VideoTextbox.Text, UriKind.Absolute, out uri)) return;
             var item = new DownloadItem(null, uri, (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
             _downloadItems.Add(item);
             _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
@@ -183,15 +186,15 @@ namespace MS.Youtube.Downloader
             MixpanelTrack("Get Playlist", new {Url = playlistUrl.Text, items.Count});
         }
 
-        private void YoutubeVideoTextbox_KeyDown(object sender, KeyEventArgs e)
+        private void VideoTextbox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Return)
-                Navigate(YoutubeVideoTextbox.Text);
+                Navigate(VideoTextbox.Text);
         }
 
         private void GoToUrl_Click(object sender, RoutedEventArgs e)
         {
-            Navigate(YoutubeVideoTextbox.Text);
+            Navigate(VideoTextbox.Text);
         }
 
         private void Navigate(string text)
@@ -201,14 +204,14 @@ namespace MS.Youtube.Downloader
 
         private void WebBrowser_Navigating(object sender, System.Windows.Navigation.NavigatingCancelEventArgs e)
         {
-            var url = _service.GetUrlType(e.Uri);
-            YoutubeVideoTextbox.Text = url.ToString();
+            var url = VideoUrl.Create(e.Uri);
+            VideoTextbox.Text = url.ToString();
             switch (url.Type) {
-                case YoutubeUrlType.User:
+                case VideoUrlType.User:
                     username.Text = url.Id;
                     GetPlayLists_Click(null, null);
                     break;
-                case YoutubeUrlType.Playlist:
+                case VideoUrlType.Channel:
                     playlistUrl.Text = url.ToString();
                     GetPlayListItemsButton_Click(null, null);
                     break;
@@ -225,15 +228,15 @@ namespace MS.Youtube.Downloader
         private void playlistUrl_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_service == null) return;
-            var url = _service.GetUrlType(playlistUrl.Text);
-            PlaylistDownload.IsEnabled = (url.Type == YoutubeUrlType.Playlist);
+            var url = VideoUrl.Create(playlistUrl.Text);
+            PlaylistDownload.IsEnabled = (url.Type == VideoUrlType.Channel);
         }
 
-        private void YoutubeVideoTextbox_TextChanged(object sender, TextChangedEventArgs e)
+        private void VideoTextbox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_service == null) return;
-            var url = _service.GetUrlType(YoutubeVideoTextbox.Text);
-            UrlDownload.IsEnabled = (url.Type == YoutubeUrlType.Video);
+            var url = VideoUrl.Create(VideoTextbox.Text);
+            UrlDownload.IsEnabled = (url.Type == VideoUrlType.Video);
         }
 
     }
