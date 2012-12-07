@@ -96,7 +96,8 @@
             <TabItem Header="VIDEO BROWSER">
                 <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
                     <Label Content="URL:" Margin="0,10,0,0" HorizontalAlignment="Left" Width="44" Height="49" VerticalAlignment="Top"  FontWeight="Bold" FontSize="18"/>
-                    <TextBox x:Name="VideoTextbox" Height="47" TextWrapping="Wrap" Text="http://player.vimeo.com/play_redirect?clip_id=45417241&amp;sig=151de22030f12e1d70601fb7cbd24b9c&amp;time=1354696770&amp;quality=HD&amp;codecs=H264,VP8,VP6&amp;type=moogaloop_local&amp;embed_location=" Margin="49,11,229,0" VerticalAlignment="Top" KeyDown="VideoTextbox_KeyDown"  FontWeight="Bold" FontSize="18" TextChanged="VideoTextbox_TextChanged"/>
+                    <!-- http://player.vimeo.com/play_redirect?clip_id=45417241&amp;sig=151de22030f12e1d70601fb7cbd24b9c&amp;time=1354696770&amp;quality=HD&amp;codecs=H264,VP8,VP6&amp;type=moogaloop_local&amp;embed_location= -->
+                    <TextBox x:Name="VideoTextbox" Height="47" TextWrapping="Wrap" Text="https://vimeo.com/" Margin="49,11,229,0" VerticalAlignment="Top" KeyDown="VideoTextbox_KeyDown"  FontWeight="Bold" FontSize="18" TextChanged="VideoTextbox_TextChanged"/>
                     <Button Content="DOWNLOAD" Margin="0,10,10,0" VerticalAlignment="Top" Click="UrlDownload_Click" HorizontalAlignment="Right" Width="110" Height="48" x:Name="UrlDownload"/>
                     <WebBrowser x:Name="WebBrowser" Margin="0,64,0,86" Navigating="WebBrowser_Navigating"/>
                     <Button Content="GO TO URL" HorizontalAlignment="Right" Margin="0,11,155,0" VerticalAlignment="Top" Width="75" Height="47" Click="GoToUrl_Click" x:Name="GoToUrl"/>

@@ -1,4 +1,6 @@
-﻿namespace MS.Video.Downloader.Service.Youtube
+﻿using System.Collections.Generic;
+
+namespace MS.Video.Downloader.Service.Youtube
 {
     public class VideoEntry
     {

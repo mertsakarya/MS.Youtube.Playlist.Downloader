@@ -1,28 +1,26 @@
 ﻿using System;
 using System.Collections;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using MS.Video.Downloader.Service;
+using MS.Video.Downloader.Service.Models;
 using MS.Video.Downloader.Service.Youtube;
 using Newtonsoft.Json;
+using Vimeo.API;
 
 namespace MS.Video.Downloader
 {
     public partial class MainWindow
     {
-        private readonly DownloaderService _service;
-        private Google.YouTube.Playlist _playlist;
-        private readonly DownloadItems _downloadItems;
+        private Entry _playlist;
         private readonly LocalService _settings;
 
         public MainWindow()
         {
             InitializeComponent();
             _settings = new LocalService(GetType().Assembly);
-            _service = new DownloaderService();
-            _downloadItems = new DownloadItems();
-            _downloadItems.OnDownloadStatusChange += OnDownloadStatusChange;
             mediatype.SelectedIndex = 1;
             foldername.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\MS.Video.Downloader";
             WebBrowser.Navigate(VideoTextbox.Text);
@@ -35,7 +33,8 @@ namespace MS.Video.Downloader
                                        .Replace("|2|", _settings.Version);
             var contentProviders = Enum.GetNames(typeof(ContentProviderType));
             PlaylistsProvider.ItemsSource = contentProviders;
-            PlaylistsProvider.SelectedIndex = 0;
+            PlaylistsProvider.Text = ContentProviderType.Youtube.ToString();
+
             Paypal.NavigateToString(paypalHtml);
             Tabs.SelectedIndex = 2;
             PlaylistDownload.IsEnabled = false;
@@ -43,7 +42,7 @@ namespace MS.Video.Downloader
             PlaylistsDownload.IsEnabled = false;
         }
 
-        private void OnDownloadStatusChange(DownloadItem item, DownloadStatus status)
+        private void OnDownloadStatusChange(DownloadItems downloadItems, DownloadItem item, DownloadStatus status)
         {
             Dispatcher.Invoke(() => LogBoxLog(item, status.DownloadState));
             switch (status.DownloadState) {
@@ -51,13 +50,13 @@ namespace MS.Video.Downloader
                     Dispatcher.Invoke(() => {
                         Log.Content = "DONE!";
                         progressBar.Value = 0;
-                        LogBox.Text = String.Format("Finished {1} files.\r\n{0}", LogBox.Text, _downloadItems.Count);
-                        foreach(var d in _downloadItems)
+                        LogBox.Text = String.Format("Finished {1} files.\r\n{0}", LogBox.Text, downloadItems.Count);
+                        foreach(var d in downloadItems)
                             if (d.Status.DownloadState == DownloadState.Error) {
                                 LogBox.Text = String.Format("Error [{2}]: {1}\r\n{0}", LogBox.Text, d.Uri, d.Status.UserData ?? "");
                             }
 
-                        _downloadItems.Clear();
+                        downloadItems.Clear();
                     });
                     break;
                 case DownloadState.DownloadProgressChanged:
@@ -96,70 +95,64 @@ namespace MS.Video.Downloader
                 LogBox.Text = String.Format("{1} [{0}]\r\n", title, state) + LogBox.Text;
         }
 
-        private async void GetPlayLists_Click(object sender, RoutedEventArgs e)
+        private void GetPlayLists_Click(object sender, RoutedEventArgs e)
         {
-            var items = await _service.GetPlaylistsAsync(username.Text);
-            //var coll = new ObservableCollection<Google.YouTube.Playlist>();
-            //foreach(var item in items)
-            //    coll.Add(item);
-            numFound.Content = items.Count;
-            listbox.ItemsSource = items;
-            PlaylistsDownload.IsEnabled = false;
-            MixpanelTrack("Get Playlist", new { Username = username.Text, items.Count });
+            if (PlaylistsProvider.SelectedItem == null) return;
+            var youtubeUserText = "http://www.youtube.com/user/" + username.Text;
+            var vimeoUserText = "http://vimeo.com/" + username.Text;
+            var entryText = PlaylistsProvider.SelectedItem.ToString() == ContentProviderType.Vimeo.ToString()
+                                ? vimeoUserText
+                                : youtubeUserText;
+            var entry = Entry.Create(entryText);
+            entry.GetEntries(items => Dispatcher.Invoke(() => {
+                numFound.Content = items.Count;
+                if (items.Count <= 0) return;
+                listbox.ItemsSource = items;
+                PlaylistsDownload.IsEnabled = false;
+                MixpanelTrack("Get Playlist", new {Username = username.Text, items.Count});
+            }));
         }
 
-        private void PlaylistsDownload_Click(object sender, RoutedEventArgs e)
-        {
-            DownloadList((listbox2.SelectedItems.Count > 0) ? listbox2.SelectedItems : listbox2.Items);
-        }
+        private void PlaylistsDownload_Click(object sender, RoutedEventArgs e) { DownloadList((listbox2.SelectedItems.Count > 0) ? listbox2.SelectedItems : listbox2.Items); }
+        private void PlaylistDownload_Click(object sender, RoutedEventArgs e) { DownloadList((listbox3.SelectedItems.Count > 0) ? listbox3.SelectedItems : listbox3.Items); }
 
-        private void PlaylistDownload_Click(object sender, RoutedEventArgs e)
-        {
-            DownloadList((listbox3.SelectedItems.Count > 0) ? listbox3.SelectedItems : listbox3.Items);
-        }
-
-        private void DownloadList(IEnumerable list)
+        private void DownloadList(IList list)
         {
             if (_playlist == null) return;
-            foreach (VideoEntry member in list) {
-                if (String.IsNullOrEmpty(member.Url)) continue;
-                var item = new DownloadItem(_playlist, new Uri(member.Url), (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
-                _downloadItems.Add(item);
-            }
-            _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
-            MixpanelTrack("Download List", new {_downloadItems.Count});
+            var downloadItems = new DownloadItems((MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text, OnDownloadStatusChange);
+            foreach (var member in list.Cast<Entry>().Where(member => !String.IsNullOrEmpty(member.Url))) 
+                downloadItems.Add(member);
+            downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
+            MixpanelTrack("Download List", new {downloadItems.Count});
         }
 
-        private async void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _playlist = listbox.SelectedItem as Google.YouTube.Playlist;
+            _playlist = listbox.SelectedItem as Entry;
             PlaylistsDownload.IsEnabled = false;
             if (_playlist == null) return;
-            var items = await _service.GetPlaylistAsync(_playlist);
-            numFound.Content = items.Count;
-            PlaylistsDownload.IsEnabled = items.Count > 0;
-            listbox2.ItemsSource = items;
-            MixpanelTrack("Get Playlist", new {_playlist.Title, items.Count, Url = _playlist.PlaylistsEntry.AlternateUri});
+            _playlist.GetEntries(items => Dispatcher.Invoke(() => {
+                numFound.Content = items.Count;
+                if (items.Count <= 0) return;
+                PlaylistsDownload.IsEnabled = true;
+                listbox2.ItemsSource = items;
+                MixpanelTrack("Get Playlist", new { _playlist.Title, items.Count, _playlist.Url });
+            }));
         }
 
         private void UrlDownload_Click(object sender, RoutedEventArgs e)
         {
-            _downloadItems.Clear();
-            Uri uri;
-            if (!Uri.TryCreate(VideoTextbox.Text, UriKind.Absolute, out uri)) return;
-            var item = new DownloadItem(null, uri, (MediaType) Enum.Parse(typeof (MediaType), mediatype.Text), foldername.Text);
-            _downloadItems.Add(item);
-            _downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
+            var downloadItems = new DownloadItems((MediaType)Enum.Parse(typeof(MediaType), mediatype.Text), foldername.Text, OnDownloadStatusChange) { Entry.Create(VideoTextbox.Text) };
+            downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
         }
 
-        private async void GetPlayListItemsButton_Click(object sender, RoutedEventArgs e)
+        private void GetPlayListItemsButton_Click(object sender, RoutedEventArgs e)
         {
-            Uri uri;
-            if (!Uri.TryCreate(playlistUrl.Text, UriKind.Absolute, out uri)) return;
-            var items = await _service.GetPlaylistAsync(uri);
-            listbox3.ItemsSource = items;
-            PlaylistDownload.IsEnabled = (items.Count > 0);
-            MixpanelTrack("Get Playlist", new {Url = playlistUrl.Text, items.Count});
+            Entry.Create(playlistUrl.Text).GetEntries(items => Dispatcher.Invoke(() => {
+                listbox3.ItemsSource = items;
+                PlaylistDownload.IsEnabled = (items.Count > 0);
+                MixpanelTrack("Get Playlist", new {Url = playlistUrl.Text, items.Count});
+            }));
         }
 
         private void VideoTextbox_KeyDown(object sender, KeyEventArgs e)
@@ -188,7 +181,9 @@ namespace MS.Video.Downloader
         {
             if (!e.Data.GetDataPresent(DataFormats.StringFormat)) return;
             var dataString = (string)e.Data.GetData(DataFormats.StringFormat);
-            PrepareUrl(dataString);
+            var videoUrl = PrepareUrl(dataString);
+            if(videoUrl.Type == VideoUrlType.Video)
+                Navigate(videoUrl.Uri.ToString());
         }
 
         private VideoUrl PrepareUrl(string url)
@@ -208,7 +203,6 @@ namespace MS.Video.Downloader
                 case VideoUrlType.Video:
                     Tabs.SelectedIndex = 2;
                     VideoTextbox.Text = u.ToString();
-                    Navigate(VideoTextbox.Text);
                     break;
             }
             return u;
@@ -223,16 +217,16 @@ namespace MS.Video.Downloader
 
         private void playlistUrl_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_service == null) return;
             var url = VideoUrl.Create(playlistUrl.Text);
-            PlaylistDownload.IsEnabled = (url.Type == VideoUrlType.Channel);
+            if(PlaylistDownload != null)
+                PlaylistDownload.IsEnabled = (url.Type == VideoUrlType.Channel);
         }
 
         private void VideoTextbox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_service == null) return;
             var url = VideoUrl.Create(VideoTextbox.Text);
-            UrlDownload.IsEnabled = (url.Type == VideoUrlType.Video);
+            if(UrlDownload != null)
+                UrlDownload.IsEnabled = (url.Type == VideoUrlType.Video);
         }
 
     }

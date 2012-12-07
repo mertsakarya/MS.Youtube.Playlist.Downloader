@@ -8,11 +8,11 @@ using MS.Video.Downloader.Service.Youtube;
 
 namespace MS.Video.Downloader.Service
 {
-    public class DownloaderService
+    public class _DownloaderService
     {
         private readonly YouTubeRequestSettings _settings;
 
-        public DownloaderService()
+        public _DownloaderService()
         {
             _settings = new YouTubeRequestSettings(
                 "MS.Youtube.Downloader",
@@ -28,7 +28,8 @@ namespace MS.Video.Downloader.Service
             await Task.Factory.StartNew(() => {
                 var request = new YouTubeRequest(_settings);
                 var items = request.GetPlaylistsFeed(userName);
-                foreach(var item in items.Entries) list.Add(item);
+                foreach(var item in items.Entries) 
+                    list.Add(item);
             }).ConfigureAwait(false);
             return list;
         }

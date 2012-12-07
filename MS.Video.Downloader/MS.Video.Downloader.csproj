@@ -165,6 +165,10 @@
       <Project>{d7cdfd0e-4df1-4697-a8e5-defd5f2e33ea}</Project>
       <Name>MS.Video.Downloader.Service</Name>
     </ProjectReference>
+    <ProjectReference Include="..\VimeoAPI\VimeoAPI.csproj">
+      <Project>{A1C45CC0-C830-4BFE-9BE1-0503991FAB26}</Project>
+      <Name>VimeoAPI</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

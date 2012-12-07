@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using Google.GData.Client;
+using MS.Video.Downloader.Service.Models;
 using MS.Video.Downloader.Service.Youtube;
 using VideoInfo = MS.Video.Downloader.Service.Youtube.VideoInfo;
 
@@ -17,6 +17,7 @@ namespace MS.Video.Downloader.Service
         private readonly string _applicationPath;
         private readonly string _downloadFolder;
         private readonly string _videoFolder;
+        private readonly string _providerFolder;
         private bool _ignoreIfFileExists;
 
         public VideoInfo VideoInfo { get; private set; }
@@ -29,23 +30,27 @@ namespace MS.Video.Downloader.Service
 
         internal DownloadStatusEventHandler OnDownloadStatusChange;
 
-        public DownloadItem(Entry playlist, Uri uri, MediaType mediaType, string baseFolder)
+        public DownloadItem(Entry entry, MediaType mediaType, string baseFolder)
         {
             MediaType = mediaType;
             BaseFolder = baseFolder;
             _applicationPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-            Uri = uri;
+            var playlist = entry.Parent;
+            Uri = new Uri(entry.Url);
             var playlistName = (playlist == null) ? "" : "\\" + playlist.Title;
             ChannelName = (playlist == null) ? "" : playlist.Title;
 
             if (!Directory.Exists(BaseFolder)) Directory.CreateDirectory(BaseFolder);
 
-            _videoFolder = BaseFolder + "\\" + Enum.GetName(typeof(MediaType), MediaType.Video);
+            _providerFolder = BaseFolder + "\\" + Enum.GetName(typeof(ContentProviderType), entry.VideoUrl.Provider);
+            if (!Directory.Exists(_providerFolder)) Directory.CreateDirectory(_providerFolder);
+
+            _videoFolder = _providerFolder + "\\" + Enum.GetName(typeof(MediaType), MediaType.Video);
             if (!Directory.Exists(_videoFolder)) Directory.CreateDirectory(_videoFolder);
             _videoFolder += playlistName;
             if (!Directory.Exists(_videoFolder)) Directory.CreateDirectory(_videoFolder);
 
-            _downloadFolder = BaseFolder + "\\" + Enum.GetName(typeof(MediaType), MediaType);
+            _downloadFolder = _providerFolder + "\\" + Enum.GetName(typeof(MediaType), MediaType);
             if (!Directory.Exists(_downloadFolder)) Directory.CreateDirectory(_downloadFolder);
             _downloadFolder += playlistName;
             if (!Directory.Exists(_downloadFolder)) Directory.CreateDirectory(_downloadFolder);
@@ -66,7 +71,7 @@ namespace MS.Video.Downloader.Service
                 Status.DownloadState = DownloadState.Error;
                 Status.Percentage = 100.0;
                 Status.UserData = "SKIPPING! No MP4 with 360 pixel resolution";
-                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
                 return;
             }
             Status.DownloadState = DownloadState.DownloadStart;
@@ -81,7 +86,7 @@ namespace MS.Video.Downloader.Service
                 ConvertToMp3();
             else if (OnDownloadStatusChange != null) {
                 Status.DownloadState = DownloadState.Ready;
-                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
             }
         }
 
@@ -107,7 +112,7 @@ namespace MS.Video.Downloader.Service
             if (_ignoreIfFileExists && File.Exists(audioFile)) {
                 Status.DownloadState = DownloadState.Ready;
                 Status.Percentage = 100.0;
-                if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
             } else {
                 if (File.Exists(audioFile)) File.Delete(audioFile);
                 if (!File.Exists(videoFile)) return;
@@ -130,12 +135,12 @@ namespace MS.Video.Downloader.Service
                     var state = (process.ExitCode == 0) ? DownloadState.Ready : DownloadState.Error;
                     Status.DownloadState = state;
                     Status.Percentage = 100.0;
-                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
                 }
                 catch (Exception) {
                     Status.DownloadState = DownloadState.Error;
                     Status.Percentage = 100.0;
-                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(this, Status);
+                    if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
                 }
             }
         }
