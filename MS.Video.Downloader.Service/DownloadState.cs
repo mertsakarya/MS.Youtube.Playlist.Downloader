@@ -9,6 +9,7 @@
         ConvertAudioStart,
         Ready,
         Error,
-        AllFinished
+        AllFinished,
+        AllStart
     }
 }

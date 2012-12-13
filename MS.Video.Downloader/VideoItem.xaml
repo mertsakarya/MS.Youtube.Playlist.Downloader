@@ -5,9 +5,9 @@
             <StackPanel Orientation="Horizontal">
                 <Image Name="img" Margin="6"  Source="{Binding Path=ThumbnailUrl}"  Width="120" Height="90" ToolTip="{Binding Path=Title}"/>
                 <StackPanel>
-                <TextBlock FontWeight="Bold" FontSize="18"  Height="20" Text="{Binding Path=Title}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path=Title}"/>
-                <TextBlock Text="{Binding Path=Description}" FontSize="10" Height="60" TextTrimming="CharacterEllipsis"  ToolTip="{Binding Path=Description}"/>
-                </StackPanel>
+                <TextBlock FontWeight="Bold" FontSize="18"  Height="25" Text="{Binding Path=Title}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path=Title}"/>
+                <TextBlock Text="{Binding Description}" FontSize="10" Height="48" TextTrimming="CharacterEllipsis"  ToolTip="{Binding Description}"/>
+            </StackPanel>
             </StackPanel>
         </Border>
 </UserControl>

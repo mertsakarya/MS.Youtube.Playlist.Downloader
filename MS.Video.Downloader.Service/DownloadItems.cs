@@ -1,17 +1,21 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using MS.Video.Downloader.Service.Models;
 
 namespace MS.Video.Downloader.Service
 {
-    public delegate void DownloadStatusEventHandler(DownloadItems downloadItems, DownloadItem item, DownloadStatus status);
+    public delegate void DownloadStatusEventHandler(DownloadItems downloadItems, Entry entry, DownloadStatus status);
 
-    public class DownloadItems : ObservableCollection<DownloadItem>
+    public class DownloadItems : ObservableCollection<Entry>
     {
         public MediaType MediaType { get; set; }
         public string BaseFolder { get; set; }
         private bool _ignoreDownloaded;
         private readonly int _poolSize;
+
+        public Guid Guid { get; private set; }
 
         public DownloadStatusEventHandler OnDownloadStatusChange;
 
@@ -22,15 +26,13 @@ namespace MS.Video.Downloader.Service
             OnDownloadStatusChange = onDownloadStatusChange;
             _ignoreDownloaded = false;
             _poolSize = poolSize;
-        }
-
-        public void Add(Entry entry)
-        {
-            Add(new DownloadItem(entry, MediaType, BaseFolder));
+            Guid = Guid.NewGuid();
         }
 
         public void Download(bool ignoreDownloaded)
         {
+            if (OnDownloadStatusChange != null)
+                OnDownloadStatusChange(this, null, new DownloadStatus {Percentage = 0.0, DownloadState = DownloadState.AllStart});
             _ignoreDownloaded = ignoreDownloaded;
             foreach (var item in this) {
                 item.OnDownloadStatusChange += OnDownloadStatusChanged;
@@ -38,7 +40,7 @@ namespace MS.Video.Downloader.Service
             DownloadFirst();
         }
 
-        private void OnDownloadStatusChanged(DownloadItems downloadItems, DownloadItem item, DownloadStatus status)
+        private void OnDownloadStatusChanged(DownloadItems downloadItems, Entry item, DownloadStatus status)
         {
             if (OnDownloadStatusChange == null) return;
             var finishedCount = this.Count(p => (p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error));
@@ -54,11 +56,15 @@ namespace MS.Video.Downloader.Service
                 DownloadFirst();
         }
 
-        private void DownloadFirst()
+        private async void DownloadFirst()
         {
-            var first = this.FirstOrDefault(item => item.Status.DownloadState == DownloadState.Initialized);
-            if(first != null)
-                first.DownloadAsync(_ignoreDownloaded);
+            await Task.Factory.StartNew(() => {
+                var first = this.FirstOrDefault(item => item.Status.DownloadState == DownloadState.Initialized);
+                if (first != null) {
+                    OnDownloadStatusChange(this, first, new DownloadStatus {Percentage = 0.0, DownloadState = DownloadState.DownloadStart});
+                    first.DownloadAsync(MediaType, BaseFolder, _ignoreDownloaded);
+                }
+            });
         }
     }
 }

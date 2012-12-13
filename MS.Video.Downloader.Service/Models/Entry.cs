@@ -1,44 +1,52 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Google.GData.Client;
-using Google.YouTube;
 using MS.Video.Downloader.Service.Youtube;
-using Vimeo.API;
 
 namespace MS.Video.Downloader.Service.Models
 {
     public delegate void EntriesReady(IList<Entry> entries);
 
-    public class Entry
+    public abstract class Entry
     {
-        private string _url;
-        private readonly YouTubeRequestSettings _settings;
-        private readonly VimeoClient _vimeoClient;
+        protected static string ApplicationPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
 
-        private Entry(Entry parent = null)
+        private string _url;
+
+        protected Entry(Entry parent = null)
         {
             Parent = parent;
-            _settings = new YouTubeRequestSettings(
-                "MS.Youtube.Downloader",
-                "AI39si76x-DO4bui7H1o0P6x8iLHPBvQ24exnPiM8McsJhVW_pnCWXOXAa1D8-ymj0Bm07XrtRqxBC7veH6flVIYM7krs36kQg" //key
-                ) {AutoPaging = true, PageSize = 50};
-            _vimeoClient = new VimeoClient("0511c1f34b14b62200a3b6fc3db5488d1ffaa1d3", "5ef0dc0e1e161b7185b8de6e980a3921d539e17e");
+            Guid = Guid.NewGuid();
+            Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
         }
 
         public static Entry Create(string url, Entry parent = null)
         {
-            var entry = new Entry(parent) {Url = url};
+            var videoUrl = VideoUrl.Create(url);
+            Entry entry = null;
+            switch (videoUrl.Provider) {
+                case ContentProviderType.Vimeo:
+                    entry = new VimeoEntry(parent) {Url = url};
+                    break;
+                case ContentProviderType.Youtube:
+                    entry = new YoutubeEntry(parent) { Url = url };
+                    break;
+            }
             return entry;
         }
 
         public Entry Parent { get; private set; }
         public string Title { get; set; }
+        public string VideoExtension { get; set; }
         public string Description { get; set; }
         public string ThumbnailUrl { get; set; }
+        public string[] ThumbnailUrls { get; set; }
         public string Content { get; set; }
-
         public string Url
         {
             get { return _url; }
@@ -46,119 +54,157 @@ namespace MS.Video.Downloader.Service.Models
                 VideoUrl = VideoUrl.Create(_url);
             }
         }
-
         public string MediaUrl { get; set; }
+        public VideoUrl VideoUrl { get; protected set; }
+        public int Track { get; protected set; }
+        public int TrackCount { get; protected set; }
 
-        public VideoUrl VideoUrl { get; private set; }
+        public string BaseFolder { get; set; }
+        public string ProviderFolder { get; set; }
+        public string VideoFolder { get; set; }
+        public string DownloadFolder { get; set; }
+        public MediaType MediaType { get; set; }
+        public Guid Guid { get; private set; }
+        public DownloadStatus Status { get; set; }
+        public string ChannelName { get { return Parent == null ? "" : Parent.Title; } }
+        public DownloadStatusEventHandler OnDownloadStatusChange;
+
+        public virtual void DownloadAsync(MediaType mediaType, string baseFolder, bool ignore = false)
+        {
+            MediaType = mediaType;
+            BaseFolder = baseFolder;
+            if (!Directory.Exists(BaseFolder)) Directory.CreateDirectory(BaseFolder);
+
+            ProviderFolder = BaseFolder + "\\" + Enum.GetName(typeof(ContentProviderType), VideoUrl.Provider);
+            if (!Directory.Exists(ProviderFolder)) Directory.CreateDirectory(ProviderFolder);
+
+            VideoFolder = ProviderFolder + "\\" + Enum.GetName(typeof(MediaType), MediaType.Video);
+            if (!Directory.Exists(VideoFolder)) Directory.CreateDirectory(VideoFolder);
+            if (!String.IsNullOrEmpty(GetLegalPath(ChannelName))) {
+                VideoFolder += "\\" + GetLegalPath(ChannelName);
+                if (!Directory.Exists(VideoFolder)) Directory.CreateDirectory(VideoFolder);
+            }
+
+            if (MediaType == MediaType.Audio) {
+                DownloadFolder = ProviderFolder + "\\" + Enum.GetName(typeof (MediaType), MediaType);
+                if (!Directory.Exists(DownloadFolder)) Directory.CreateDirectory(DownloadFolder);
+                if (!String.IsNullOrEmpty(ChannelName)) {
+                    DownloadFolder += "\\" + ChannelName;
+                    if (!Directory.Exists(DownloadFolder)) Directory.CreateDirectory(DownloadFolder);
+                }
+            }
+            Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
+        }
+
+
+
 
         public override string ToString()
         {
             return Title;
         }
 
-        public void GetEntries(EntriesReady onEntriesReady)
+        public abstract void GetEntries(EntriesReady onEntriesReady);
+
+        protected abstract TagLib.Id3v2.Tag GetId3Tag();
+
+        protected static async Task DownloadToFileAsync(Uri uri, string fileName)
         {
-            switch (VideoUrl.Type) {
-                case VideoUrlType.Channel:
-                    FillEntriesChannel(onEntriesReady);
-                    break;
-                case VideoUrlType.User:
-                    FillEntriesUser(onEntriesReady);
-                    break;
-            }
-        }
-
-        private void FillEntriesUser(EntriesReady onEntriesReady)
-        {
-            switch (VideoUrl.Provider) {
-                case ContentProviderType.Vimeo:
-                    FillEntriesVimeoUser(onEntriesReady);
-                    break;
-                case ContentProviderType.Youtube:
-                    FillEntriesYoutubeUser(onEntriesReady);
-                    break;
-            }
-        }
-
-        private void FillEntriesChannel(EntriesReady onEntriesReady)
-        {
-            switch (VideoUrl.Provider) {
-                case ContentProviderType.Vimeo:
-                    FillEntriesVimeoChannel(onEntriesReady);
-                    break;
-                case ContentProviderType.Youtube:
-                    FillEntriesYoutubeChannel(onEntriesReady);
-                    break;
-            }
-        }
-
-        private void FillEntriesVimeoUser(EntriesReady onEntriesReady) { }
-
-        private void FillEntriesVimeoChannel(EntriesReady onEntriesReady) { }
-
-        private async void FillEntriesYoutubeUser(EntriesReady onEntriesReady)
-        {
-            await Task.Factory.StartNew(() => {
-                var request = new YouTubeRequest(_settings);
-                var items = request.Get<Playlist>(new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/playlists?v=2", VideoUrl.Id)));
-                if (items == null) return;
-                var entries = new List<Entry>();
-                entries.Add(new Entry(this) { Title = "Favorites", Content = VideoUrl.Id, VideoUrl = VideoUrl.Create(VideoUrl.Id, VideoUrl.Provider, VideoUrlType.Channel)});
-                foreach (var member in items.Entries) {
-                    entries.Add(new Entry(this) {
-                        Title = member.Title,
-                        Url = member.PlaylistsEntry.AlternateUri.ToString(),
-                        Description = member.Summary,
-                    });
+            var req = WebRequest.Create(uri);
+            using (var resp = await req.GetResponseAsync()) {
+                using (var stream = resp.GetResponseStream()) {
+                    using (var destinationStream = File.Create(fileName)) {
+                        if (stream != null) {
+                            await stream.CopyToAsync(destinationStream);
+                        }
+                    }
                 }
-                if (onEntriesReady != null) onEntriesReady(entries);
-            }).ConfigureAwait(false);
-        }
-
-        private async void FillEntriesYoutubeChannel(EntriesReady onEntriesReady)
-        {
-            if (Title == "Favorites") {
-                FillEntriesYoutubeFavorites(onEntriesReady);
-                return;
             }
-            await Task.Factory.StartNew(() => {
-                var request = new YouTubeRequest(_settings);
-                var items = request.Get<PlayListMember>(new Uri("http://gdata.youtube.com/feeds/api/playlists/" + VideoUrl.Id));
-                if (items == null) return;
-                var entries = new List<Entry>();
-                foreach (var member in items.Entries.Where(member => member.WatchPage != null)) {
-                    var firstOrDefault = member.Thumbnails.FirstOrDefault(t => t.Height == "90" && t.Width == "120");
-                    entries.Add(new Entry(this) {
-                        Title = member.Title,
-                        Url = member.WatchPage.ToString(),
-                        Description = member.Description,
-                        ThumbnailUrl = (firstOrDefault != null) ? firstOrDefault.Url : "",
-                        Content = member.Content
-                    });
-                }
-                if (onEntriesReady != null) onEntriesReady(entries);
-            }).ConfigureAwait(false);
         }
 
-        private async void FillEntriesYoutubeFavorites(EntriesReady onEntriesReady)
+        protected static async Task<string> DownloadToStringAsync(Uri uri)
         {
-            await Task.Factory.StartNew(() => {
-                var request = new YouTubeRequest(_settings);
-                var items = request.Get<PlayListMember>(new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/favorites", Content)));
-                if (items == null) return;
-                var entries = new List<Entry>();
-                foreach (var member in items.Entries.Where(member => member.WatchPage != null)) {
-                    var firstOrDefault = member.Thumbnails.FirstOrDefault(t => t.Height == "90" && t.Width == "120");
-                    entries.Add(new Entry(this) {
-                        Title = member.Title,
-                        Url = member.WatchPage.ToString(),
-                        Description = member.Description,
-                        ThumbnailUrl = (firstOrDefault != null) ? firstOrDefault.Url : "",
-                        Content = member.Content
-                    });
+            var req = WebRequest.Create(uri);
+            using (var resp = await req.GetResponseAsync()) {
+                using (var stream = resp.GetResponseStream()) {
+                    using (var destinationStream = new MemoryStream()) {
+                        if (stream != null) {
+                            await stream.CopyToAsync(destinationStream);
+                        }
+                        var bytes = destinationStream.GetBuffer();
+                        return Encoding.UTF8.GetString(bytes);
+                    }
                 }
-                if (onEntriesReady != null) onEntriesReady(entries);
-            }).ConfigureAwait(false);
+            }
         }
+
+        protected async void ConvertToMp3(bool ignore = false)
+        {
+            if (Status.DownloadState != DownloadState.DownloadFinish) return;
+            var audioFile = Path.Combine(DownloadFolder, GetLegalPath(Title)) + ".mp3";
+            var videoFile = Path.Combine(VideoFolder, GetLegalPath(Title)) + VideoExtension;
+            if (ignore && File.Exists(audioFile)) {
+                Status.DownloadState = DownloadState.Ready;
+                Status.Percentage = 100.0;
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
+            }
+            else {
+                await Task.Factory.StartNew(() => {
+                    if (File.Exists(audioFile)) File.Delete(audioFile);
+                    if (!File.Exists(videoFile)) return;
+                    var arguments = String.Format("-i \"{0}\" -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, audioFile);
+                    var process = new Process {
+                        EnableRaisingEvents = true,
+                        StartInfo = {
+                            FileName = ApplicationPath + "\\Executables\\ffmpeg.exe",
+                            Arguments = arguments,
+                            CreateNoWindow = true,
+                            RedirectStandardError = true,
+                            RedirectStandardOutput = true,
+                            UseShellExecute = false
+                        }
+                    };
+                    try {
+                        process.Start();
+                        if (!process.WaitForExit(1800000)) {
+                            process.Kill();
+                            process.WaitForExit(30000);
+                        }
+                        DownloadState state;
+                        if (process.ExitCode == 0) {
+                            Tag(audioFile);
+                            state = DownloadState.Ready;
+                        } else state = DownloadState.Error;
+                        Status.DownloadState = state;
+                        Status.Percentage = 100.0;
+                        if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
+                    }
+                    catch (Exception) {
+                        Status.DownloadState = DownloadState.Error;
+                        Status.Percentage = 100.0;
+                        if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
+                    }
+                });
+            }
+        }
+
+        private void Tag(string filename)
+        {
+            var file = TagLib.File.Create(filename);
+            if (file == null) return;
+            var tag = GetId3Tag();
+            tag.CopyTo(file.Tag, true);
+            file.Tag.Pictures = tag.Pictures;
+            file.Save();
+        }
+
+        protected static string GetLegalPath(string text)
+        {
+            var regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+            var r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
+            return  r.Replace(text, "_");
+        }
+
+        public abstract void ParseChannelInfoFromHtml(VideoUrl url);
     }
 }
