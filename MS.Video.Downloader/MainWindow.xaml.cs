@@ -52,17 +52,17 @@ namespace MS.Video.Downloader
                     Dispatcher.Invoke(() => {
                         Log.Content = "START";
                         progressBar.Value = 0;
-                        AddLog(String.Format("ALL START [{0}].", downloadItems.Guid));
+                        AddLog(String.Format("STARTED DOWNLOAD [{0}] WITH [{1}] FILES.", downloadItems.Guid, downloadItems.Count));
                     });
                     break;
                 case DownloadState.AllFinished:
                     Dispatcher.Invoke(() => {
                         Log.Content = "DONE!";
                         progressBar.Value = 0;
-                        AddLog(String.Format("FINISHED {1} WITH [{0}] FILES.", downloadItems.Count, downloadItems.Guid));
-                        foreach(var e in downloadItems)
+                        AddLog(String.Format("FINISHED DOWNLOAD [{0}] WITH [{1}] FILES.", downloadItems.Guid, downloadItems.Count));
+                        foreach (var e in downloadItems)
                             if (e.Status.DownloadState == DownloadState.Error) {
-                                AddLog(String.Format("Error [{1}]: {0}", e.Url, e.Status.UserData ?? ""));
+                                AddLog(String.Format("ERROR {2}[{1}]: {0}", e.Url, e.Status.UserData ?? "", (entry == null) ? "" :entry.Title ?? ""));
                             }
                         downloadItems.Clear();
                     });
@@ -73,7 +73,7 @@ namespace MS.Video.Downloader
             }
             if (entry != null) {
                 Dispatcher.Invoke(() => {
-                    var title = "";
+                    string title;
                     if (entry.Title != null)
                         title = entry.Title;
                     else if (entry.Url != null)
@@ -88,7 +88,7 @@ namespace MS.Video.Downloader
         private void LogBoxLog(Entry item, DownloadState state)
         {
             if (item == null || state == DownloadState.DownloadProgressChanged) return;
-            var title = "";
+            string title;
             if (item.Title != null)
                 title = item.Title;
             else if (item.Url != null)
@@ -158,7 +158,7 @@ namespace MS.Video.Downloader
             downloadItems.Download(ignoreDownloaded.IsChecked ?? false);
         }
 
-        private async void GetPlayListItemsButton_Click(object sender, RoutedEventArgs e)
+        private void GetPlayListItemsButton_Click(object sender, RoutedEventArgs e)
         {
             _playlist = Entry.Create(playlistUrl.Text);
             _playlist.ParseChannelInfoFromHtml(_playlist.VideoUrl);
@@ -188,23 +188,22 @@ namespace MS.Video.Downloader
                 Navigate(uri.ToString());
         }
 
-        private VideoUrl PrepareUrl(string url)
+        private void PrepareUrl(string url)
         {
             var u = VideoUrl.Create(url);
             switch (u.Type) {
                 case VideoUrlType.User:
-                    //PlaylistsProvider.Text = u.Provider.ToString();
-                    Tabs.SelectedIndex = 0;
+                    //Tabs.SelectedIndex = 0;
                     username.Text = u.Id;
                     GetPlayLists_Click(null, null);
                     break;
                 case VideoUrlType.Channel:
-                    Tabs.SelectedIndex = 1;
+                    //Tabs.SelectedIndex = 1;
                     playlistUrl.Text = u.ToString();
                     GetPlayListItemsButton_Click(null, null);
                     break;
                 case VideoUrlType.Video:
-                    Tabs.SelectedIndex = 2;
+                    //Tabs.SelectedIndex = 2;
                     VideoTextbox.Text = u.ToString();
                     if (u is YoutubeUrl && (u as YoutubeUrl).ChannelId != "") {
                         playlistUrl.Text = u.ToString();
@@ -212,7 +211,7 @@ namespace MS.Video.Downloader
                     }
                     break;
             }
-            return u;
+            //return u;
         }
 
         public void MixpanelTrack(string action, object obj = null)
@@ -236,6 +235,10 @@ namespace MS.Video.Downloader
                 UrlDownload.IsEnabled = (url.Type == VideoUrlType.Video);
         }
 
+        private void WebBrowser_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e) { SetSilent(sender as WebBrowser, true); }
+        private void WebBrowser_LoadCompleted(object sender, System.Windows.Navigation.NavigationEventArgs e) { PrepareUrl(e.Uri.ToString()); }
+        private void Back_Click(object sender, RoutedEventArgs e) { if (WebBrowser.CanGoBack) WebBrowser.GoBack(); }
+
         private static void SetSilent(WebBrowser browser, bool silent)
         {
             if (browser == null) return;
@@ -254,22 +257,11 @@ namespace MS.Video.Downloader
             }
         }
 
-
         [ComImport, Guid("6D5140C1-7436-11CE-8034-00AA006009FA"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         private interface IOleServiceProvider
         {
             [PreserveSig]
             int QueryService([In] ref Guid guidService, [In] ref Guid riid, [MarshalAs(UnmanagedType.IDispatch)] out object ppvObject);
-        }
-
-        private void WebBrowser_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
-        {
-            SetSilent(sender as WebBrowser, true);
-        }
-
-        private void WebBrowser_LoadCompleted(object sender, System.Windows.Navigation.NavigationEventArgs e)
-        {
-            PrepareUrl(e.Uri.ToString());
         }
 
     }

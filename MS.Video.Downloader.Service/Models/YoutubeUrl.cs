@@ -13,18 +13,13 @@ namespace MS.Video.Downloader.Service.Models
         {
             var surl = lurl.Replace("youtu.be/", "youtube.com/watch?v=");
             surl = surl.Replace("www.youtube.com", "youtube.com");
-            if (surl.StartsWith("http://youtube.com/v/")) {
+            if (surl.StartsWith("http://youtube.com/v/")) 
                 surl = surl.Replace("youtube.com/v/", "youtube.com/watch?v=");
-            }
-            else if (surl.StartsWith("http://youtube.googleapis.com/v")) {
+            else if (surl.StartsWith("http://youtube.googleapis.com/v")) 
                 surl = surl.Replace("youtube.googleapis.com/v/", "youtube.com/watch?v=");
-            }
-            else if (surl.StartsWith("http://youtube.com/watch#")) {
+            else if (surl.StartsWith("http://youtube.com/watch#")) 
                 surl = surl.Replace("youtube.com/watch#", "youtube.com/watch?");
-            }
-
             surl = surl.Replace("//youtube.com", "//www.youtube.com");
-
 
             var uri = new Uri(surl);
             Uri = uri;

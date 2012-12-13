@@ -96,9 +96,6 @@ namespace MS.Video.Downloader.Service.Models
             Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
         }
 
-
-
-
         public override string ToString()
         {
             return Title;

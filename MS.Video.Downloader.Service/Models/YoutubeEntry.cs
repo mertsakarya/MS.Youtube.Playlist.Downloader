@@ -37,7 +37,7 @@ namespace MS.Video.Downloader.Service.Models
                 ) {AutoPaging = true, PageSize = 50};
         }
 
-        public override async void GetEntries(EntriesReady onEntriesReady)
+        public override void GetEntries(EntriesReady onEntriesReady)
         {
             if(YoutubeUrl.ChannelId != "")
                 FillEntriesChannel(onEntriesReady);
