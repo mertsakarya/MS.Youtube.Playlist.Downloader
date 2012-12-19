@@ -21,18 +21,13 @@ namespace MS.Video.Downloader
         public MainWindow()
         {
             InitializeComponent();
-
+            //http://www.mertsakarya.com/MS.Video.Downloader/MS.Video.Downloader.Setup/
             _settings = new LocalService(GetType().Assembly);
             mediatype.SelectedIndex = 1;
             foldername.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\MS.Video.Downloader";
             WebBrowser.Navigate(VideoTextbox.Text);
-            var firstTimeString = (_settings.FirstTime
-                                       ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});"
-                                       : "");
-            var paypalHtml = Properties.Resources.TrackerHtml
-                                       .Replace("|0|", _settings.Guid.ToString())
-                                       .Replace("|1|", firstTimeString)
-                                       .Replace("|2|", _settings.Version);
+            var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
+            var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
             var contentProviders = Enum.GetNames(typeof(ContentProviderType));
             PlaylistsProvider.ItemsSource = contentProviders;
             PlaylistsProvider.Text = ContentProviderType.Youtube.ToString();
@@ -177,7 +172,6 @@ namespace MS.Video.Downloader
         private void GoToUrl_Click(object sender, RoutedEventArgs e) { Navigate(VideoTextbox.Text); }
         private void Navigate(string text) { WebBrowser.Navigate(new Uri(text)); }
 
-        private void WebBrowser_Navigating(object sender, System.Windows.Navigation.NavigatingCancelEventArgs e) { VideoTextbox.Text = e.Uri.ToString(); }
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
@@ -235,6 +229,7 @@ namespace MS.Video.Downloader
                 UrlDownload.IsEnabled = (url.Type == VideoUrlType.Video);
         }
 
+        private void WebBrowser_Navigating(object sender, System.Windows.Navigation.NavigatingCancelEventArgs e) { VideoTextbox.Text = e.Uri.ToString(); }
         private void WebBrowser_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e) { SetSilent(sender as WebBrowser, true); }
         private void WebBrowser_LoadCompleted(object sender, System.Windows.Navigation.NavigationEventArgs e) { PrepareUrl(e.Uri.ToString()); }
         private void Back_Click(object sender, RoutedEventArgs e) { if (WebBrowser.CanGoBack) WebBrowser.GoBack(); }

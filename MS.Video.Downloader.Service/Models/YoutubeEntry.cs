@@ -121,8 +121,10 @@ namespace MS.Video.Downloader.Service.Models
             Status.DownloadState = DownloadState.DownloadStart;
             var videoFile = Path.Combine(VideoFolder, GetLegalPath(Title) + VideoExtension);
 
-            if (!ignore || !File.Exists(videoFile))
+            if (!ignore || !File.Exists(videoFile)) {
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
                 await DownloadToFileAsync(new Uri(videoInfo.DownloadUrl), videoFile);
+            }
 
             Status.DownloadState = DownloadState.DownloadFinish;
             Status.Percentage = 100.0;
@@ -157,9 +159,7 @@ namespace MS.Video.Downloader.Service.Models
                     Url = member.WatchPage.ToString(),
                     Description = member.Description,
                     ThumbnailUrl = thumbnailUrl,
-                    Content = member.Content,
-                    Track = member.Position,
-                    TrackCount = count
+                    Content = member.Content
                 });
             }
             return entries;
@@ -187,8 +187,6 @@ namespace MS.Video.Downloader.Service.Models
                     tag.Title = GetText(xml, "media:group/media:title", manager);
                     tag.Lyrics = "MS.Video.Downloader\r\n" + GetText(xml, "media:group/media:description", manager);
                     tag.Copyright = GetText(xml, "media:group/media:license", manager);
-                    tag.TrackCount = (uint) Math.Abs(TrackCount);
-                    tag.Track = (uint) Math.Abs(Track);
                     if (Parent != null)
                         if (!String.IsNullOrEmpty(Parent.Title)) tag.Album = Parent.Title;
                     tag.Composers = new[] {

@@ -31,8 +31,8 @@ namespace MS.Video.Downloader.Service.Models
             Entry entry = null;
             switch (videoUrl.Provider) {
                 case ContentProviderType.Vimeo:
-                    entry = new VimeoEntry(parent) {Url = url};
-                    break;
+                    //entry = new VimeoEntry(parent) {Url = url};
+                    //break;
                 case ContentProviderType.Youtube:
                     entry = new YoutubeEntry(parent) { Url = url };
                     break;

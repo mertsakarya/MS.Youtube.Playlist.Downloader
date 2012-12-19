@@ -1,7 +1,6 @@
 ﻿using System;
-using MS.Video.Downloader.Service.Youtube;
 
-namespace MS.Video.Downloader.Service.Models
+namespace MS.Video.Downloader.Service.Youtube.Models
 {
     public abstract class VideoUrl
     {
@@ -19,13 +18,6 @@ namespace MS.Video.Downloader.Service.Models
 
         protected abstract void Parse(string lurl);
 
-        public static VideoUrl Create(string url)
-        {
-            Uri uri;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) return null;
-            return Create(uri);
-        }
-
         public static VideoUrl Create(Uri u)
         {
 
@@ -35,10 +27,6 @@ namespace MS.Video.Downloader.Service.Models
             } else if (!surl.StartsWith("http://")) {
                 surl = "http://" + u;
             }
-            //var url = surl.IndexOf("vimeo.com", System.StringComparison.Ordinal) >= 0
-            //          ? (VideoUrl)
-            //            new VimeoUrl {Uri = u, Type = VideoUrlType.Unknown, Provider = ContentProviderType.NONE}
-            //          : 
             var url = new YoutubeUrl {Uri = u, Type = VideoUrlType.Unknown, Provider = ContentProviderType.NONE};
             url.Parse(surl);
             return url;
@@ -49,11 +37,10 @@ namespace MS.Video.Downloader.Service.Models
         {
             VideoUrl url = null;
             switch (contentProviderType) {
-                //case ContentProviderType.Vimeo:
-                //    url = new VimeoUrl() {Id = id, Provider = contentProviderType, Type = videoUrlType};
-                //    break;
+                case ContentProviderType.Vimeo:
+                    break;
                 case ContentProviderType.Youtube:
-                    url = new YoutubeUrl() { Id = id, Provider = contentProviderType, Type = videoUrlType };
+                    url = new YoutubeUrl { Id = id, Provider = contentProviderType, Type = videoUrlType };
                     break;
             }
             return url;
