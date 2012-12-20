@@ -40,11 +40,25 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
         private void OnDownloadStatusChanged(DownloadItems downloadItems, Entry item, DownloadStatus status)
         {
             if (OnDownloadStatusChange == null) return;
+            if (status.DownloadState == DownloadState.TitleChanged) {
+                OnDownloadStatusChange(this, item, status);
+                return;
+            }
             var finishedCount = this.Count(p => (p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error));
-            double sumPercentage = ((double)finishedCount/Count)*100;
+            var sumPercentage = ((double)finishedCount/Count)*100;
             var downloadCount = this.Count(p => !(p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error || p.Status.DownloadState == DownloadState.Initialized));
-            if(status.DownloadState == DownloadState.Ready || status.DownloadState == DownloadState.DownloadFinish)
-                OnDownloadStatusChange(this, item, new DownloadStatus { DownloadState = DownloadState.DownloadProgressChanged, Percentage = sumPercentage });
+            if (status.DownloadState == DownloadState.Ready || status.DownloadState == DownloadState.DownloadFinish ||
+                status.DownloadState == DownloadState.DownloadProgressChanged) {
+                OnDownloadStatusChange(this, item,
+                                       new DownloadStatus {
+                                           DownloadState = DownloadState.DownloadProgressChanged,
+                                           Percentage =
+                                               sumPercentage +
+                                               ((status.DownloadState == DownloadState.DownloadProgressChanged)
+                                                    ? ((status.Percentage/Count) * 100)
+                                                    : 0)
+                                       });
+            }
             if (downloadCount == 0 && finishedCount == Count)
                 OnDownloadStatusChange(this, null, new DownloadStatus { DownloadState = DownloadState.AllFinished, Percentage = sumPercentage });
             else 
@@ -60,5 +74,6 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             OnDownloadStatusChange(this, first, new DownloadStatus {Percentage = 0.0, DownloadState = DownloadState.DownloadStart});
             await first.DownloadAsync(MediaType, _ignoreDownloaded);
         }
+
     }
 }

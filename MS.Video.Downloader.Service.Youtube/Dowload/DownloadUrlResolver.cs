@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MS.Video.Downloader.Service.Youtube.Models;
 using Windows.Foundation;
@@ -18,102 +17,76 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
             var videoUrl = NormalizeYoutubeUrl(videoUri.ToString());
             var id = YoutubeUrl.GetVideoId(new Uri(videoUrl));
-            var videoTitle = await GetVideoTitle(videoUrl);
+            var pageSource = await GetPageSourceAsync(videoUrl);
             var requestUrl = String.Format("http://www.youtube.com/get_video_info?&video_id={0}&el=detailpage&ps=default&eurl=&gl=US&hl=en", id);
             var source = await GetPageSourceAsync(requestUrl);
-            var decoded = WebUtility.UrlDecode(source);
-            decoded = WebUtility.UrlDecode(decoded);
 
             try {
-                var downloadUrls = ExtractDownloadUrls(decoded);
-                return GetVideoInfos(downloadUrls, videoTitle);
+                string videoTitle;
+                var downloadUrls = ExtractDownloadUrls(source, out videoTitle);
+                var videoInfos = GetVideoInfos(downloadUrls, videoTitle);
+                return videoInfos;
             } catch (Exception ex) {
                 ThrowYoutubeParseException(ex);
             }
 
-            //if (IsVideoUnavailable(pageSource)) {
-            //    throw new Exception("Video not available");
-            //}
+            if (IsVideoUnavailable(pageSource)) throw new Exception("Video not available");
 
-            // If everything else fails, throw a generic YoutubeParseException
             ThrowYoutubeParseException(null);
 
-            return null; // Will never happen, but the compiler requires it
+            return null;
         }
-        #region test code
-        private static string GetTitle(string qs)
+        private static IEnumerable<Uri> ExtractDownloadUrls(string source, out string title)
         {
-            var querySegments = qs.Split('&');
-            foreach (var segment in querySegments) {
-                var parts = segment.Split('=');
-                if (parts.Length <= 0) continue;
-                var key = parts[0].Trim(new char[] { '?', ' ' });
-                if (key == "title") {
-                    return parts[1].Trim();
+            var urls = new List<Uri>();
+            var list = ParseFormEncoded(source);
+            title = "";
+            foreach (var kv in list) {
+                if (kv[0] == "title") title = kv[1];
+                if (kv[0] != "url_encoded_fmt_stream_map") continue;
+                var list2 = kv[1].Split(',');
+                foreach (var kv2 in list2) {
+                    var list3 = ParseFormEncoded(kv2);
+
+                    var url = "";
+                    var fallbackHost = "";
+                    var sig = "";
+
+                    foreach (var kv3 in list3) {
+                        switch (kv3[0]) {
+                            case "url":
+                                url = kv3[1];
+                                break;
+                            case "fallback_host":
+                                fallbackHost = kv3[1];
+                                break;
+                            case "sig":
+                                sig = kv3[1];
+                                break;
+                        }
+                    }
+                    if(String.IsNullOrEmpty(url)) throw new Exception("Could not find URL");
+                    if (url.IndexOf("&fallback_host=", StringComparison.Ordinal) < 0)
+                        url += "&fallback_host=" + WebUtility.UrlEncode(fallbackHost);
+                    if (url.IndexOf("&signature=", StringComparison.Ordinal) < 0)
+                        url += "&signature=" + WebUtility.UrlEncode(sig);
+                    urls.Add(new Uri(url));
                 }
             }
-            return "";
-        }
-
-        private static string ParseQS(string source)
-        {
-            var qs = WebUtility.UrlDecode(source);
-            var querySegments = qs.Split('&');
-            var list = new List<string[]>();
-            foreach (var segment in querySegments) {
-                var parts = segment.Split('=');
-                if (parts.Length <= 0) continue;
-                var key = parts[0].Trim(new char[] { '?', ' ' });
-                var val = parts[1].Trim();
-                list.Add( new[] {key, val});
-            }
-            var str = "";
-            foreach (var i in list)
-                str += i[0] + "\t" + i[1] + "\r\n";
-            return str;
-        }
-
-        private static string ExtractVideoTitle(string decoded)
-        {
-            var dict = ParseQueryString(decoded);
-            var titles = dict["title"];
-            return titles[titles.Count - 1];
-        }
-
-        private static Dictionary<string, List<string>> ParseQueryString(string qs)
-        {
-            var d = new Dictionary<string, List<string>>();
-            var querySegments = qs.Split('&');
-            foreach (var segment in querySegments) {
-                var parts = segment.Split('=');
-                if (parts.Length <= 0) continue;
-                var key = parts[0].Trim(new char[] { '?', ' ' });
-                var val = parts[1].Trim();
-                if (!d.ContainsKey(key)) {
-                    d.Add(key, new List<string> {val});
-                } else {
-                    d[key].Add(val);
-                }
-            }
-            return d;
-        }
-#endregion
-        
-        private static IEnumerable<Uri> ExtractDownloadUrls(string availableFormats)
-        {
-            const string argument = "url=";
-            const string endOfQueryString = "&quality";
-
-            var urlList = Regex.Split(availableFormats, argument).ToList();
-
-            // Format the URL
-            var urls = from url in urlList
-                       let index = url.IndexOf(endOfQueryString, StringComparison.Ordinal)
-                       where index > 0
-                       let finalUrl = url.Substring(0, index).Replace("&sig=", "&signature=")
-                       select new Uri(Uri.UnescapeDataString(finalUrl));
-
             return urls;
+        }
+
+        private static IEnumerable<string[]> ParseFormEncoded(string qs)
+        {
+            var parameters = qs.Split('&');
+            var list = new List<string[]>(parameters.Length);
+            foreach (var parameter in parameters) {
+                var parameterKeyValue = parameter.Split('=');
+                var key = WebUtility.UrlDecode(parameterKeyValue[0]).ToLowerInvariant();
+                var value = WebUtility.UrlDecode(parameterKeyValue[1]);
+                list.Add(new[] { key, value });
+            }
+            return list;
         }
 
         private static async Task<string> GetPageSourceAsync(string videoUrl)
@@ -127,7 +100,8 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
             foreach (var url in downloadUrls) {
                 var a = new WwwFormUrlDecoder(url.Query);
-                var formatCode = Byte.Parse(a.GetFirstValueByName("itag"));
+                byte formatCode;
+                if(!Byte.TryParse(a.GetFirstValueByName("itag"), out formatCode)) continue;
 
                 // Currently based on YouTube specifications (later we'll depend on the MIME type returned from the web request)
                 var item = VideoInfo.Defaults.SingleOrDefault(videoInfo => videoInfo.FormatCode == formatCode);
@@ -143,33 +117,6 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             }
 
             return downLoadInfos;
-        }
-
-        private static async Task<string> GetVideoTitle(string videoUrl)
-        {
-            var pageSource = await GetPageSourceAsync(videoUrl);
-
-            string videoTitle = null;
-
-            try {
-                const string videoTitlePattern = @"\<meta name=""title"" content=""(?<title>.*)""\>";
-                var videoTitleRegex = new Regex(videoTitlePattern, RegexOptions.IgnoreCase);
-                var videoTitleMatch = videoTitleRegex.Match(pageSource);
-
-                if (videoTitleMatch.Success) {
-                    videoTitle = videoTitleMatch.Groups["title"].Value;
-                    videoTitle = WebUtility.HtmlDecode(videoTitle);
-
-                    // Remove the invalid characters in file names
-                    // In Windows they are: \ / : * ? " < > |
-                    videoTitle = Regex.Replace(videoTitle, @"[:\*\?""\<\>\|]", String.Empty);
-                    videoTitle = videoTitle.Replace("\\", "-").Replace("/", "-").Trim();
-                }
-            } catch (Exception) {
-                videoTitle = null;
-            }
-
-            return videoTitle;
         }
 
         private static bool IsVideoUnavailable(string pageSource)

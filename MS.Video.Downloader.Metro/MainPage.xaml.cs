@@ -8,6 +8,7 @@ using MS.Video.Downloader.Service.Youtube.Models;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
@@ -22,6 +23,12 @@ namespace MS.Video.Downloader.Metro
         private YoutubeUrl _youtubeUrl;
         private Entry _playlist;
         private readonly WebViewWrapper _webView;
+
+        public string POPPOP
+        {
+            get { return "Mert"; }
+            
+        }
 
         public MainPage() { 
             InitializeComponent();
@@ -75,7 +82,7 @@ namespace MS.Video.Downloader.Metro
             _playlist.GetEntries(OnEntriesReady, OnYoutubeLoading);
         }
 
-        private void OnYoutubeLoading(int count, int total)
+        private void OnYoutubeLoading(object self, int count, int total)
         {
             if (total > 0) {
                 LoadingProgressBar.Visibility = Visibility.Visible;
@@ -158,9 +165,12 @@ namespace MS.Video.Downloader.Metro
         private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_youtubeUrl.Type == VideoUrlType.User) {
-                var entry  = List.SelectedItem as Entry;
+                var entry = List.SelectedItem as Entry;
                 if (entry == null) return;
                 Navigate(entry.Uri);
+            }
+            else {
+                GetList.Content = (List.SelectedItems.Count > 0) ? "Download Selected" : "Download Playlist";
             }
         }
 
@@ -206,7 +216,9 @@ namespace MS.Video.Downloader.Metro
                     downloadItems.Clear();
                     break;
                 case DownloadState.DownloadProgressChanged:
-                    Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { ProgressBar.Value = status.Percentage; });
+                    Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => {
+                        ProgressBar.Value = status.Percentage;
+                    });
                     break;
             }
             if (entry != null) {

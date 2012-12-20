@@ -103,16 +103,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
         }
 
-        //private async void FillEntriesYoutubeFavorites(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
-        //{
-        //    var request = new MSYoutubeRequest(_settings);
-        //    var items = await request.GetAsync(YoutubeUrl, new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/favorites", Content)), onYoutubeLoading);
-        //    if (items == null) return;
-        //    var entries = GetMembers(items);
-        //    if (onEntriesReady != null) onEntriesReady(entries);
-        //}
-
-        public override async Task DownloadAsync(MediaType mediaType, bool ignore = false)
+        public override async Task DownloadAsync(MediaType mediaType, bool ignore)
         {
             await base.DownloadAsync(mediaType, ignore);
             var videoInfos = await DownloadUrlResolver.GetDownloadUrlsAsync(Uri);
@@ -126,20 +117,32 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
             Title = videoInfo.Title;
             VideoExtension = videoInfo.VideoExtension;
-            Status.DownloadState = DownloadState.DownloadStart;
+            Status.DownloadState = DownloadState.TitleChanged;
             var videoFile = GetLegalPath(Title) + VideoExtension;
             var fileExists = await FileExists(VideoFolder, videoFile);
-            if (!(ignore && fileExists))
-                await DownloadToFileAsync(new Uri(videoInfo.DownloadUrl), VideoFolder, videoFile);
+            if (!(ignore && fileExists)) {
+                if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
+                //await Logger.Log("SUCCESS: " + videoInfo.DownloadUrl+"\r\n");
+                await DownloadToFileAsync(new Uri(videoInfo.DownloadUrl), VideoFolder, videoFile, OnYoutubeLoading);
+            }
 
             Status.DownloadState = DownloadState.DownloadFinish;
-            Status.Percentage = 100.0;
-            if (MediaType == MediaType.Audio)
+            if (MediaType == MediaType.Audio) {
+                Status.Percentage = 50.0;
                 ConvertToMp3(ignore);
-            else if (OnDownloadStatusChange != null) {
+            }  else if (OnDownloadStatusChange != null) {
+                Status.Percentage = 100.0;
                 Status.DownloadState = DownloadState.Ready;
                 if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
             }
+        }
+
+        private void OnYoutubeLoading(object self, int count, int total)
+        {
+            var percentage = ((double)count / total) * ((MediaType == MediaType.Audio) ? 50 : 100);
+            Status.DownloadState = DownloadState.DownloadProgressChanged;
+            Status.Percentage = percentage;
+            if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
         }
 
         private List<Entry> GetMembers(MSYoutubeEntry items)

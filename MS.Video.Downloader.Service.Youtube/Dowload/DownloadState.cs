@@ -4,6 +4,7 @@
     {
         Initialized,
         DownloadStart,
+        TitleChanged,
         DownloadProgressChanged,
         DownloadFinish,
         ConvertAudioStart,

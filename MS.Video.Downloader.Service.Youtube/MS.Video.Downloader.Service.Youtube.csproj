@@ -106,6 +106,7 @@
     <Compile Include="Dowload\DownloadState.cs" />
     <Compile Include="Dowload\DownloadStatus.cs" />
     <Compile Include="Dowload\DownloadUrlResolver.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="Models\Entry.cs" />
     <Compile Include="Models\MSYoutubeSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -24,7 +24,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
         }
     }
 
-    public delegate void MSYoutubeLoading(int count, int total);
+    public delegate void MSYoutubeLoading(object self, int count, int total);
 
     public class MSYoutubeRequest
     {
@@ -47,7 +47,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             if (feed.NextPageUri == null) return;
             var xml = await GetXmlDocumentAsync(feed.NextPageUri);
             FillFeed(xml, feed);
-            if (loading != null) loading(feed.Entries.Count, feed.Total);
+            if (loading != null) loading(feed, feed.Entries.Count, feed.Total);
             await _GetAsync(uri, feed, loading);
         }
 

@@ -66,7 +66,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
         public string ChannelName { get { return Parent == null ? "" : Parent.Title; } }
         public DownloadStatusEventHandler OnDownloadStatusChange;
 
-        public async virtual Task DownloadAsync(MediaType mediaType, bool ignore = false)
+        public async virtual Task DownloadAsync(MediaType mediaType, bool ignore)
         {
             MediaType = mediaType;
             //BaseFolder = baseFolder;
@@ -117,25 +117,27 @@ namespace MS.Video.Downloader.Service.Youtube.Models
         public abstract void GetEntries(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading);
 
 
-        public static async Task DownloadToFileAsync(Uri uri, StorageFolder folder, string fileName)
+        public async Task DownloadToFileAsync(Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
         {
             using (var stream = await DownloadToStreamAsync(uri)) {
                 var storageFile = await folder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
                 if (stream != null) {
                     using (var destinationStream = await storageFile.OpenStreamForWriteAsync()) {
-                        await stream.CopyToAsync(destinationStream, 16384);
+                        await CopyToAsync(stream, destinationStream, onYoutubeLoading);
                     }
                 }
             }
         }
 
-        public static async Task CopyToAsync(Stream input, Stream output, int bufferSize = 16384)
+        public async Task CopyToAsync(Stream input, Stream output, MSYoutubeLoading onYoutubeLoading, int bufferSize = 16384)
         {
             var buffer = new byte[bufferSize]; // Fairly arbitrary size
             int bytesRead;
-
+            int bytesLoaded = 0;
             while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length)) > 0) {
                 await output.WriteAsync(buffer, 0, bytesRead);
+                bytesLoaded += bytesRead;
+                if (onYoutubeLoading != null) onYoutubeLoading(this, bytesLoaded, (int)input.Length);
             }
         }
 
@@ -170,11 +172,11 @@ namespace MS.Video.Downloader.Service.Youtube.Models
         public static async Task<Stream> DownloadToStreamAsync(Uri uri)
         {
             if (uri == null) throw new ArgumentNullException("uri");
-            //var req = WebRequest.Create(uri);
             var req = new HttpClient();
             var message = new HttpRequestMessage(HttpMethod.Get, uri);
             message.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11");
             var resp = await req.SendAsync(message);
+            await Logger.Log(resp.StatusCode.ToString() + " : " + uri);
             return await resp.Content.ReadAsStreamAsync();
         }
 
@@ -191,12 +193,6 @@ namespace MS.Video.Downloader.Service.Youtube.Models
                 if (OnDownloadStatusChange != null) OnDownloadStatusChange(null, this, Status);
             }
             else {
-                //try {
-                //    var tmpFile = await DownloadFolder.GetFileAsync(audioFileName);
-                //    if (tmpFile != null)
-                //        await tmpFile.DeleteAsync(StorageDeleteOption.PermanentDelete);
-                //}
-                //catch {}
                 var audioFile = await DownloadFolder.CreateFileAsync(audioFileName, CreationCollisionOption.ReplaceExisting);
                 var videoFile = await VideoFolder.GetFileAsync(videoFileName);
                 if (videoFile == null) return;
@@ -223,7 +219,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             var prepareOp = await transcoder.PrepareFileTranscodeAsync(srcFile, destFile, profile);
             if (prepareOp.CanTranscode) {
                 var transcodeOp = prepareOp.TranscodeAsync();
-                //transcodeOp.Progress += TranscodeProgress;
+                transcodeOp.Progress += TranscodeProgress;
                 transcodeOp.Completed += action;
             } //else {
                 //switch (prepareOp.FailureReason) {
@@ -238,6 +234,11 @@ namespace MS.Video.Downloader.Service.Youtube.Models
                 //        break;
                 //}
             //}
+        }
+
+        private void TranscodeProgress(IAsyncActionWithProgress<double> asyncInfo, double progressInfo)
+        {
+            //1100.0
         }
 
         protected static string GetLegalPath(string text)
