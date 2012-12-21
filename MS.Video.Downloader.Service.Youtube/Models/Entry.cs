@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -93,10 +93,10 @@ namespace MS.Video.Downloader.Service.Youtube.Models
                 else  if (await baseFolder.GetFolderAsync(folderName) != null)
                     folder =  await baseFolder.GetFolderAsync(folderName);
             }
-            catch (FileNotFoundException ex) {
+            catch (FileNotFoundException) {
                 found = false;
             }
-            if(!found)
+            if(!found && folderName != null)
                 folder = await baseFolder.CreateFolderAsync(folderName);
             return folder;
         }
@@ -116,34 +116,40 @@ namespace MS.Video.Downloader.Service.Youtube.Models
 
         public abstract void GetEntries(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading);
 
-
+        private const long BlockSize =  (512 * 1024);
         public async Task DownloadToFileAsync(Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
         {
-            using (var stream = await DownloadToStreamAsync(uri)) {
-                var storageFile = await folder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
-                if (stream != null) {
-                    using (var destinationStream = await storageFile.OpenStreamForWriteAsync()) {
-                        await CopyToAsync(stream, destinationStream, onYoutubeLoading);
-                    }
-                }
+            var storageFile = await folder.CreateFileAsync(fileName, CreationCollisionOption.OpenIfExists);
+            using (var destinationStream = await storageFile.OpenStreamForWriteAsync()) {
+                //var properties = await storageFile.GetBasicPropertiesAsync();
+                var start = destinationStream.Length; // (long)properties.Size;
+                destinationStream.Position = destinationStream.Length;
+                await AddToFile(uri, destinationStream, start, start + BlockSize - 1, onYoutubeLoading);
             }
         }
 
-        public async Task CopyToAsync(Stream input, Stream output, MSYoutubeLoading onYoutubeLoading, int bufferSize = 16384)
+        private async Task AddToFile(Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading)
         {
-            var buffer = new byte[bufferSize]; // Fairly arbitrary size
-            int bytesRead;
-            int bytesLoaded = 0;
-            while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length)) > 0) {
-                await output.WriteAsync(buffer, 0, bytesRead);
-                bytesLoaded += bytesRead;
-                if (onYoutubeLoading != null) onYoutubeLoading(this, bytesLoaded, (int)input.Length);
+            var content = await DownloadToStreamAsync(uri, start, stop);
+            if (content.Headers.ContentRange == null) return;
+            long total = (content.Headers.ContentRange.Length ?? 0);
+            long to = (content.Headers.ContentRange.To ?? 0);
+            //long downloadedLength = (long) content.Headers.ContentLength;
+            using (var stream = await content.ReadAsStreamAsync()) {
+                if (stream == null) return;
+                await stream.CopyToAsync(destinationStream);
+                await destinationStream.FlushAsync();
+                if (onYoutubeLoading != null) onYoutubeLoading(this, to, total);
+                if (total > to + 1)
+                    await AddToFile(uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading);
             }
+            
         }
 
         public static async Task<string> DownloadToStringAsync(Uri uri, Encoding encoding = null)
         {
-            using (var stream = await DownloadToStreamAsync(uri)) {
+            var content = await DownloadToStreamAsync(uri);
+            using (var stream = await content.ReadAsStreamAsync()) {
                 using (var destinationStream = new MemoryStream()) {
                     if (stream != null) {
                         await stream.CopyToAsync(destinationStream);
@@ -158,7 +164,8 @@ namespace MS.Video.Downloader.Service.Youtube.Models
 
         public static async Task<byte[]> DownloadToByteArrayAsync(Uri uri, Encoding encoding = null)
         {
-            using (var stream = await DownloadToStreamAsync(uri)) {
+            var content = await DownloadToStreamAsync(uri);
+            using (var stream = await content.ReadAsStreamAsync()) {
                 using (var destinationStream = new MemoryStream()) {
                     if (stream != null) {
                         await stream.CopyToAsync(destinationStream);
@@ -169,15 +176,16 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
         }
 
-        public static async Task<Stream> DownloadToStreamAsync(Uri uri)
+        public static async Task<HttpContent> DownloadToStreamAsync(Uri uri, long? start = null, long? end = null)
         {
-            if (uri == null) throw new ArgumentNullException("uri");
             var req = new HttpClient();
             var message = new HttpRequestMessage(HttpMethod.Get, uri);
+            if (start != null || end != null) {
+                message.Headers.Range = new RangeHeaderValue(start, end);
+            }
             message.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11");
             var resp = await req.SendAsync(message);
-            await Logger.Log(resp.StatusCode.ToString() + " : " + uri);
-            return await resp.Content.ReadAsStreamAsync();
+            return resp.Content;
         }
 
         protected async void ConvertToMp3(bool ignore = false)
@@ -248,8 +256,6 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             var r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
             return  r.Replace(text, "_");
         }
-
-        public abstract void ParseChannelInfoFromHtml(VideoUrl url);
 
         public abstract Entry Clone();
 

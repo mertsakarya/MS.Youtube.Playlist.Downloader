@@ -78,6 +78,7 @@
   <ItemGroup>
     <Compile Include="ApplicationConfiguration.cs" />
     <Compile Include="DownloadItems.cs" />
+    <Compile Include="DownloadLists.cs" />
     <Compile Include="DownloadState.cs" />
     <Compile Include="DownloadStatus.cs" />
     <Compile Include="LocalService.cs" />

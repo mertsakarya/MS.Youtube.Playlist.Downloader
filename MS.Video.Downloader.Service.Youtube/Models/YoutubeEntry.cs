@@ -6,6 +6,7 @@ using MS.Video.Downloader.Service.Youtube.Dowload;
 
 namespace MS.Video.Downloader.Service.Youtube.Models
 {
+
     public class YoutubeEntry : Entry
     {
         private readonly MSYoutubeSettings _settings;
@@ -137,7 +138,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
         }
 
-        private void OnYoutubeLoading(object self, int count, int total)
+        private void OnYoutubeLoading(object self, long count, long total)
         {
             var percentage = ((double)count / total) * ((MediaType == MediaType.Audio) ? 50 : 100);
             Status.DownloadState = DownloadState.DownloadProgressChanged;
@@ -171,97 +172,11 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
             return entries;
         }
-/*
-        protected async override Task<TagLib.Id3v2.Tag> GetId3Tag()
-        {
-            var uri = new Uri(String.Format("https://gdata.youtube.com/feeds/api/videos/{0}?v=2", VideoUrl.Id));
-            var tag = new TagLib.Id3v2.Tag {Title = Title, Album = Parent == null ? "" : Parent.Title};
-            try {
-                var xml = new XmlDocument();
-                var xmlData = await DownloadToStringAsync(uri);
-                xml.LoadXml(xmlData);
-                if (xml.DocumentElement != null) {
-                    //var manager = new XmlNamespaceManager(xml.NameTable);
-                    //manager.AddNamespace("root", "http://www.w3.org/2005/Atom");
-                    //manager.AddNamespace("app", "http://www.w3.org/2007/app");
-                    //manager.AddNamespace("media", "http://search.yahoo.com/mrss/");
-                    //manager.AddNamespace("gd", "http://schemas.google.com/g/2005");
-                    //manager.AddNamespace("yt", "http://gdata.youtube.com/schemas/2007");
-                    tag.Title = GetText(xml, "media:group/media:title");
-                    tag.Lyrics = "MS.Video.Downloader\r\n" + GetText(xml, "media:group/media:description");
-                    tag.Copyright = GetText(xml, "media:group/media:license");
-                    tag.TrackCount = (uint) Math.Abs(TrackCount);
-                    tag.Track = (uint) Math.Abs(Track);
-                    if (Parent != null)
-                        if (!String.IsNullOrEmpty(Parent.Title)) tag.Album = Parent.Title;
-                    tag.Composers = new[] {
-                        "MS.Video.Downloader", "Youtube",
-                        GetText(xml, "root:link[@rel=\"alternate\"]/@href"),
-                        GetText(xml, "root:author/root:name"),
-                        GetText(xml, "root:author/root:uri")
-                    };
-                    var urlNodes = xml.DocumentElement.SelectNodes("media:group/media:thumbnail");
-                    var pics = new List<IPicture>();
-                    if (urlNodes != null && urlNodes.Count > 0) {
-                        foreach (var urlNode in urlNodes) {
-                            var attributes = urlNode.Attributes;
-                            var urlAttr = attributes.GetNamedItem("url");
-                            if (urlAttr != null) {
-                                var url = urlAttr.InnerText;
-                                var bytes = await DownloadToByteArrayAsync(new Uri(url));
-                                pics.Add(new Picture(new ByteVector(bytes)));
-                            }
-                        }
-                    }
-                    tag.Pictures = pics.ToArray();
-                }
-            }
-            catch {}
-            return tag;
-        }
-        */
-        public async override void ParseChannelInfoFromHtml(VideoUrl url)
-        {
-
-             //const string videoTitlePattern = @"\<meta name=""title"" content=""(?<title>.*)""\>";
-             //   var videoTitleRegex = new Regex(videoTitlePattern, RegexOptions.IgnoreCase);
-             //   var videoTitleMatch = videoTitleRegex.Match(pageSource);
-            //   if (videoTitleMatch.Success) {
-             //       videoTitle = videoTitleMatch.Groups["title"].Value;
-             //       videoTitle = WebUtility.HtmlDecode(videoTitle);
-
-            //var doc = new HtmlDocument();
-            //var req = WebRequest.Create(url.Uri);
-            //using (var resp = await req.GetResponseAsync()) {
-            //    using (var stream = resp.GetResponseStream()) {
-            //        if (stream != null) doc.Load(stream, Encoding.UTF8);
-            //    }
-            //}
-            //var metaTags = doc.DocumentNode.Descendants("meta");
-            //Title = GetDomValue(metaTags, "property", "og:title", "content");
-            //Description = GetDomValue(metaTags, "property", "og:description", "content");
-            //ThumbnailUrl = GetDomValue(metaTags, "property", "og:image", "content");
-        }
-
         public override Entry Clone()
         {
             var entry = new YoutubeEntry();
             CopyTo(entry);
             return entry;
         }
-
-        //private static string GetDomValue(IEnumerable<HtmlNode> tags, string queryAttribute, string value, string resultAttribute)
-        //{
-        //    foreach (var element in tags)
-        //        if (element.GetAttributeValue(queryAttribute.ToLowerInvariant(), "") == value)
-        //            return WebUtility.HtmlDecode(element.GetAttributeValue(resultAttribute, ""));
-        //    return "";
-        //}
-
-        //private static string GetText(XmlDocument xml, string xpath)
-        //{
-        //    var node = xml.DocumentElement.SelectSingleNode(xpath);
-        //    return node == null ? "" : node.InnerText;
-        //}
     }
 }

@@ -27,7 +27,7 @@
                         <CheckBox x:Name="ConvertMp3" Content="Convert to MP3" HorizontalAlignment="Left" Margin="114,154,0,0" VerticalAlignment="Top"/>
                         <CheckBox x:Name="IgnoreDownloaded" Content="Use cache" HorizontalAlignment="Left" Margin="1,155,0,0" VerticalAlignment="Top"/>
                         <ListView x:Name="List" HorizontalAlignment="Stretch"  Margin="1,238,0,69" SelectionMode="Multiple" SelectionChanged="List_SelectionChanged" />
-                        <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Bottom"/>
+                        <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Bottom" Foreground="White"/>
                         <TextBlock x:Name="Log" Text="" HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Bottom" Margin="35,0,0,32" />
                         <TextBlock x:Name="Count" HorizontalAlignment="Left" Margin="148,191,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="23" Width="63" FontSize="24" FontWeight="Bold" FontStyle="Italic" FlowDirection="RightToLeft"/>
                         <TextBlock x:Name="ItemsText" HorizontalAlignment="Left" Margin="215,204,0,0" TextWrapping="Wrap" Text="ITEMS" VerticalAlignment="Top" Height="10" Width="39" Visibility="Collapsed"/>

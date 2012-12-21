@@ -24,7 +24,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
         }
     }
 
-    public delegate void MSYoutubeLoading(object self, int count, int total);
+    public delegate void MSYoutubeLoading(object self, long count, long total);
 
     public class MSYoutubeRequest
     {

@@ -169,12 +169,6 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MS.Video.Downloader.Service\MS.Video.Downloader.Service.csproj">
-      <Project>{d7cdfd0e-4df1-4697-a8e5-defd5f2e33ea}</Project>
-      <Name>MS.Video.Downloader.Service</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.5 %28x86 and x64%29</ProductName>

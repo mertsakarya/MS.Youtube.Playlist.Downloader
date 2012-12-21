@@ -23,15 +23,11 @@ namespace MS.Video.Downloader.Metro
         private YoutubeUrl _youtubeUrl;
         private Entry _playlist;
         private readonly WebViewWrapper _webView;
-
-        public string POPPOP
-        {
-            get { return "Mert"; }
-            
-        }
-
+        private DownloadLists lists;
         public MainPage() { 
             InitializeComponent();
+            lists = new DownloadLists();
+            lists.OnStatusChanged += OnDownloadStatusChange;
             _webView = new WebViewWrapper(WebBrowser);
             _webView.Navigating += (sender, args) => Loading();
         }
@@ -78,11 +74,10 @@ namespace MS.Video.Downloader.Metro
         {
             List.SelectionMode = ListViewSelectionMode.Multiple;
             _playlist = Entry.Create(_youtubeUrl.Uri);
-            _playlist.ParseChannelInfoFromHtml(_playlist.VideoUrl);
             _playlist.GetEntries(OnEntriesReady, OnYoutubeLoading);
         }
 
-        private void OnYoutubeLoading(object self, int count, int total)
+        private void OnYoutubeLoading(object self, long count, long total)
         {
             if (total > 0) {
                 LoadingProgressBar.Visibility = Visibility.Visible;
@@ -181,12 +176,8 @@ namespace MS.Video.Downloader.Metro
         private void GetList_Click(object sender, RoutedEventArgs e) { DownloadList(((List.SelectedItems.Count > 0) ? List.SelectedItems : List.Items)); }
         private void DownloadList(IEnumerable list)
         {
-            var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video; 
-            var downloadItems = new DownloadItems(mediaType, OnDownloadStatusChange);
-            foreach (Entry member in list)
-                if(member.Uri != null)
-                    downloadItems.Add(member.Clone());
-            downloadItems.Download(IgnoreDownloaded.IsChecked ?? false);
+            var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
+            lists.Add(list, mediaType, IgnoreDownloaded.IsChecked ?? false);
             //MixpanelTrack("Download List", new { downloadItems.Count });
         }
 
@@ -207,30 +198,24 @@ namespace MS.Video.Downloader.Metro
                         Log.Text = "DONE!";
                         DownloadProcessRing.IsActive = false;
                         ProgressBar.Value = 0;
-                        //AddLog(String.Format("FINISHED DOWNLOAD [{0}] WITH [{1}] FILES.", downloadItems.Guid, downloadItems.Count));
-                        //foreach (var e in downloadItems)
-                        //    if (e.Status.DownloadState == DownloadState.Error) {
-                        //        AddLog(String.Format("ERROR {2}[{1}]: {0}", e.Url, e.Status.UserData ?? "", (entry == null) ? "" : entry.Title ?? ""));
-                        //    }
                     });
                     downloadItems.Clear();
-                    break;
+                    return;
                 case DownloadState.DownloadProgressChanged:
                     Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => {
                         ProgressBar.Value = status.Percentage;
                     });
                     break;
             }
-            if (entry != null) {
-                string title;
-                if (entry.Title != null)
-                    title = entry.Title;
-                else if (entry.Uri != null)
-                    title = entry.Uri.ToString();
-                else
-                    title = entry.Guid.ToString();
-                Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { Log.Text = title; });
-            }
+            if (entry == null) return;
+            string title;
+            if (entry.Title != null)
+                title = entry.Title;
+            else if (entry.Uri != null)
+                title = entry.Uri.ToString();
+            else
+                title = entry.Guid.ToString();
+            Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { Log.Text = title; });
         }
 
     }

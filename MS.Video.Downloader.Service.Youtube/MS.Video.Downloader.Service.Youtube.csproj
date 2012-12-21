@@ -103,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dowload\DownloadItems.cs" />
+    <Compile Include="Dowload\DownloadLists.cs" />
     <Compile Include="Dowload\DownloadState.cs" />
     <Compile Include="Dowload\DownloadStatus.cs" />
     <Compile Include="Dowload\DownloadUrlResolver.cs" />

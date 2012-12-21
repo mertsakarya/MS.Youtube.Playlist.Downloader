@@ -39,32 +39,19 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
         private void OnDownloadStatusChanged(DownloadItems downloadItems, Entry item, DownloadStatus status)
         {
-            if (OnDownloadStatusChange == null) return;
-            if (status.DownloadState == DownloadState.TitleChanged) {
-                OnDownloadStatusChange(this, item, status);
-                return;
-            }
-            var finishedCount = this.Count(p => (p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error));
-            var sumPercentage = ((double)finishedCount/Count)*100;
             var downloadCount = this.Count(p => !(p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error || p.Status.DownloadState == DownloadState.Initialized));
-            if (status.DownloadState == DownloadState.Ready || status.DownloadState == DownloadState.DownloadFinish ||
-                status.DownloadState == DownloadState.DownloadProgressChanged) {
-                OnDownloadStatusChange(this, item,
-                                       new DownloadStatus {
-                                           DownloadState = DownloadState.DownloadProgressChanged,
-                                           Percentage =
-                                               sumPercentage +
-                                               ((status.DownloadState == DownloadState.DownloadProgressChanged)
-                                                    ? ((status.Percentage/Count) * 100)
-                                                    : 0)
-                                       });
+            if (OnDownloadStatusChange != null) {
+                var state = new DownloadStatus {DownloadState = status.DownloadState};
+                var finishedCount = this.Count( p => (p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error));
+                if (/*status.DownloadState == DownloadState.Ready || status.DownloadState == DownloadState.DownloadFinish ||*/ status.DownloadState == DownloadState.DownloadProgressChanged) {
+                    state.Percentage = (((double) finishedCount/Count)*100) + ((status.Percentage/Count));
+                    //state.DownloadState = DownloadState.DownloadProgressChanged;
+                }
+                if(downloadCount == 0 && finishedCount == Count) 
+                    state.DownloadState = DownloadState.AllFinished;
+                OnDownloadStatusChange(this, item, state);
             }
-            if (downloadCount == 0 && finishedCount == Count)
-                OnDownloadStatusChange(this, null, new DownloadStatus { DownloadState = DownloadState.AllFinished, Percentage = sumPercentage });
-            else 
-                OnDownloadStatusChange(this, item, new DownloadStatus {DownloadState = status.DownloadState, Percentage = sumPercentage});
-            if (downloadCount != _poolSize) 
-                DownloadFirst();
+            if (downloadCount != _poolSize)  DownloadFirst();
         }
 
         private async void DownloadFirst()
