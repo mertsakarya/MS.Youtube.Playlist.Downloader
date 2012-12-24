@@ -1,15 +1,38 @@
 ﻿using System;
 
-namespace MS.Video.Downloader.Service.Youtube.Models
+namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
-    public class YoutubeUrl : VideoUrl
+    public class YoutubeUrl
     {
         public string ChannelId { get; set; }
         public string VideoId { get; set; }
         public string FeedId { get; set; }
         public string UserId { get; set; }
+        public Uri Uri { get; set; }
+        public VideoUrlType Type { get; set; }
+        public ContentProviderType Provider { get; set; }
+        public string Id { get; set; }
 
-        protected override void Parse(string lurl)
+        public override string ToString()
+        {
+            return Uri.ToString();
+        }
+
+        public static YoutubeUrl Create(Uri u)
+        {
+
+            var surl = u.ToString();
+            if (surl.StartsWith("https://")) {
+                surl = "http://" + surl.Substring(8);
+            } else if (!surl.StartsWith("http://")) {
+                surl = "http://" + u;
+            }
+            var url = new YoutubeUrl { Uri = u, Type = VideoUrlType.Unknown, Provider = ContentProviderType.NONE };
+            url.Parse(surl);
+            return url;
+        }
+
+        protected void Parse(string lurl)
         {
             var surl = lurl.Replace("youtu.be/", "youtube.com/watch?v=");
             surl = surl.Replace("www.youtube.com", "youtube.com");

@@ -46,7 +46,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
         public int AudioBitrate { get; private set; }
         public AudioType AudioType { get; private set; }
         public bool CanExtractAudio { get { return VideoType == VideoType.Flash; } }
-        public string DownloadUrl { get; internal set; }
+        public Uri DownloadUri { get; internal set; }
         public int FormatCode { get; private set; }
         public bool Is3D { get; private set; }
         public int Resolution { get; private set; }

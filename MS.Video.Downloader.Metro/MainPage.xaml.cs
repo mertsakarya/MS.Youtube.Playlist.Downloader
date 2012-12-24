@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using MS.Video.Downloader.Service.Youtube;
 using MS.Video.Downloader.Service.Youtube.Dowload;
-using MS.Video.Downloader.Service.Youtube.Models;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
@@ -21,13 +18,13 @@ namespace MS.Video.Downloader.Metro
     public sealed partial class MainPage
     {
         private YoutubeUrl _youtubeUrl;
-        private Entry _playlist;
+        private YoutubeEntry _playlist;
         private readonly WebViewWrapper _webView;
-        private DownloadLists lists;
+        private readonly DownloadLists _lists;
         public MainPage() { 
             InitializeComponent();
-            lists = new DownloadLists();
-            lists.OnStatusChanged += OnDownloadStatusChange;
+            _lists = new DownloadLists();
+            _lists.OnStatusChanged += OnDownloadStatusChange;
             _webView = new WebViewWrapper(WebBrowser);
             _webView.Navigating += (sender, args) => Loading();
         }
@@ -38,7 +35,7 @@ namespace MS.Video.Downloader.Metro
         {
             List.ItemsSource = null;
 
-            _youtubeUrl = VideoUrl.Create(uri) as YoutubeUrl;
+            _youtubeUrl = YoutubeUrl.Create(uri);
             if (_youtubeUrl == null) {
                 Loading(false);  
                 return; 
@@ -66,18 +63,18 @@ namespace MS.Video.Downloader.Metro
 
         private void GetPlaylists()
         {
-            var entry = Entry.Create(_youtubeUrl.Uri);
+            var entry = YoutubeEntry.Create(_youtubeUrl.Uri);
             entry.GetEntries(OnEntriesReady, OnYoutubeLoading);
         }
 
         private void GetPlaylistItems()
         {
             List.SelectionMode = ListViewSelectionMode.Multiple;
-            _playlist = Entry.Create(_youtubeUrl.Uri);
+            _playlist = YoutubeEntry.Create(_youtubeUrl.Uri);
             _playlist.GetEntries(OnEntriesReady, OnYoutubeLoading);
         }
 
-        private void OnYoutubeLoading(object self, long count, long total)
+        private void OnYoutubeLoading(long count, long total)
         {
             if (total > 0) {
                 LoadingProgressBar.Visibility = Visibility.Visible;
@@ -85,7 +82,7 @@ namespace MS.Video.Downloader.Metro
             }
         }
 
-        private void OnEntriesReady(IList<Entry> entries)
+        private void OnEntriesReady(IList<YoutubeEntry> entries)
         {
             if (entries.Count > 0) {
                 List.ItemsSource = entries;
@@ -127,20 +124,17 @@ namespace MS.Video.Downloader.Metro
             GetList.Visibility = Visibility.Collapsed;
             GetVideo.Visibility = Visibility.Collapsed;
             ConvertMp3.Visibility = Visibility.Collapsed;
-            IgnoreDownloaded.Visibility = Visibility.Collapsed;
             if (_youtubeUrl != null) {
                 switch (_youtubeUrl.Type) {
                     case VideoUrlType.Channel:
                         GetList.Visibility = Visibility.Visible;
                         ConvertMp3.Visibility = Visibility.Visible;
-                        IgnoreDownloaded.Visibility = Visibility.Visible;
                         break;
                     case VideoUrlType.Video:
                         if (_youtubeUrl.ChannelId != "")
                             GetList.Visibility = Visibility.Visible;
                         GetVideo.Visibility = Visibility.Visible;
                         ConvertMp3.Visibility = Visibility.Visible;
-                        IgnoreDownloaded.Visibility = Visibility.Visible;
                         break;
                 }
             }
@@ -160,7 +154,7 @@ namespace MS.Video.Downloader.Metro
         private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_youtubeUrl.Type == VideoUrlType.User) {
-                var entry = List.SelectedItem as Entry;
+                var entry = List.SelectedItem as YoutubeEntry;
                 if (entry == null) return;
                 Navigate(entry.Uri);
             }
@@ -172,25 +166,23 @@ namespace MS.Video.Downloader.Metro
         private void GoBack_Click(object sender, RoutedEventArgs e) { WebBrowser.InvokeScript("eval", new[] { "history.go(-1)" });  }
         private void GoForward_Click(object sender, RoutedEventArgs e) { WebBrowser.InvokeScript("eval", new[] { "history.go(1)" }); }
 
-        private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<Entry>(1) { Entry.Create(_youtubeUrl.Uri) }); }
+        private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
         private void GetList_Click(object sender, RoutedEventArgs e) { DownloadList(((List.SelectedItems.Count > 0) ? List.SelectedItems : List.Items)); }
         private void DownloadList(IEnumerable list)
         {
             var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
-            lists.Add(list, mediaType, IgnoreDownloaded.IsChecked ?? false);
+            _lists.Add(list, mediaType, false);
             //MixpanelTrack("Download List", new { downloadItems.Count });
         }
 
-        private void OnDownloadStatusChange(DownloadItems downloadItems, Entry entry, DownloadStatus status)
+        private void OnDownloadStatusChange(DownloadList downloadItems, YoutubeEntry entry, DownloadStatus status)
         {
-            //LogBoxLog(entry, status.DownloadState);
             switch (status.DownloadState) {
                 case DownloadState.AllStart:
                     Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => {
                         Log.Text = "START";
                         ProgressBar.Value = 0;
                         DownloadProcessRing.IsActive = true;
-                        //AddLog(String.Format("STARTED DOWNLOAD [{0}] WITH [{1}] FILES.", downloadItems.Guid, downloadItems.Count));
                     });
                     break;
                 case DownloadState.AllFinished:
@@ -207,15 +199,21 @@ namespace MS.Video.Downloader.Metro
                     });
                     break;
             }
-            if (entry == null) return;
-            string title;
-            if (entry.Title != null)
-                title = entry.Title;
-            else if (entry.Uri != null)
-                title = entry.Uri.ToString();
-            else
-                title = entry.Guid.ToString();
-            Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { Log.Text = title; });
+            if (entry != null) 
+                Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { Log.Text = entry.ToString(); });
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            DownloadStatusGrid.Visibility = (DownloadStatusGrid.Visibility == Visibility.Collapsed)
+                                            ? Visibility.Visible
+                                            : Visibility.Collapsed;
+            WebViewGrid.Visibility = (DownloadStatusGrid.Visibility == Visibility.Collapsed)
+                                            ? Visibility.Visible
+                                            : Visibility.Collapsed;
+            if (DownloadStatusGrid.Visibility == Visibility.Visible) {
+                DownloadStatusGrid.ItemsSource = _lists;
+            }
         }
 
     }

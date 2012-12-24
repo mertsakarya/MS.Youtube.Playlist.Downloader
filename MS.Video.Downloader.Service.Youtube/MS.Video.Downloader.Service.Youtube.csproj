@@ -102,20 +102,20 @@
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Dowload\DownloadItems.cs" />
+    <Compile Include="Dowload\DownloadList.cs" />
     <Compile Include="Dowload\DownloadLists.cs" />
-    <Compile Include="Dowload\DownloadState.cs" />
     <Compile Include="Dowload\DownloadStatus.cs" />
-    <Compile Include="Dowload\DownloadUrlResolver.cs" />
+    <Compile Include="Dowload\DownloadHelper.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="Models\Entry.cs" />
-    <Compile Include="Models\MSYoutubeSettings.cs" />
+    <Compile Include="MSYoutube\MSYoutubeEntry.cs" />
+    <Compile Include="MSYoutube\MSYoutubeRequest.cs" />
+    <Compile Include="MSYoutube\MSYoutubeSettings.cs" />
+    <Compile Include="MSYoutube\MSYoutubeThumbnail.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Dowload\VideoInfo.cs" />
-    <Compile Include="Models\VideoUrl.cs" />
     <Compile Include="Enumerations.cs" />
-    <Compile Include="Models\YoutubeEntry.cs" />
-    <Compile Include="Models\YoutubeUrl.cs" />
+    <Compile Include="Dowload\YoutubeEntry.cs" />
+    <Compile Include="Dowload\YoutubeUrl.cs" />
     <Compile Include="WebViewWrapper.cs" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '11.0' ">

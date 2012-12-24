@@ -1,30 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using MS.Video.Downloader.Service.Youtube.Dowload;
 using Windows.Data.Xml.Dom;
 using Windows.Foundation.Collections;
 
-namespace MS.Video.Downloader.Service.Youtube.Models
+namespace MS.Video.Downloader.Service.Youtube.MSYoutube
 {
-    public class MSYoutubeSettings
-    {
-        public string ApplicationName { get; set; }
-        public string DeveloperKey { get; set; }
-        public int PageSize { get; set; }
-        public bool AutoPaging { get; set; }
-
-        public MSYoutubeSettings(string applicationName, string developerKey)
-        {
-            ApplicationName = applicationName;
-            DeveloperKey = developerKey;
-            AutoPaging = false;
-        }
-    }
-
-    public delegate void MSYoutubeLoading(object self, long count, long total);
+    public delegate void MSYoutubeLoading(long count, long total);
 
     public class MSYoutubeRequest
     {
@@ -47,7 +32,7 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             if (feed.NextPageUri == null) return;
             var xml = await GetXmlDocumentAsync(feed.NextPageUri);
             FillFeed(xml, feed);
-            if (loading != null) loading(feed, feed.Entries.Count, feed.Total);
+            if (loading != null) loading(feed.Entries.Count, feed.Total);
             await _GetAsync(uri, feed, loading);
         }
 
@@ -128,40 +113,5 @@ namespace MS.Video.Downloader.Service.Youtube.Models
             }
             return xml;
         }
-    }
-
-    public class MSYoutubeEntry
-    {
-        public Uri NextPageUri { get; set; }
-
-        public IList<MSYoutubeEntry> Entries { get; set; }
-
-        public string Description { get; set; }
-        public string Title { get; set; }
-        public Uri Uri { get; set; }
-        public string Content { get; set; }
-        public IList<MSYoutubeThumbnail> Thumbnails { get; set; }
-
-        public YoutubeUrl YoutubeUrl { get; set; }
-
-        public string Author { get; set; }
-        public string AuthorId { get; set; }
-
-        public int Total { get; set; }
-
-        public override string ToString() { return Title; }
-
-        public MSYoutubeEntry()
-        {
-            Thumbnails = new List<MSYoutubeThumbnail>();
-            Entries = new List<MSYoutubeEntry>();
-        }
-    }
-
-    public class MSYoutubeThumbnail
-    {
-        public string Url { get; set; }
-        public string Width { get; set; }
-        public string Height { get; set; }
     }
 }
