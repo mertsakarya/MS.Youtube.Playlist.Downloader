@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using System.Linq;
 
 namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
-    public delegate void ListDownloadStatusEventHandler(DownloadList list, YoutubeEntry entry, DownloadStatus status);
+    public delegate void ListDownloadStatusEventHandler(DownloadList list, IFeed feed, DownloadState downloadState, double percentage);
 
-    public class DownloadList : ObservableCollection<YoutubeEntry>
+    public class DownloadList : Feed
     {
         public MediaType MediaType { get; set; }
         private bool _ignoreDownloaded;
         private readonly int _poolSize;
-        public DownloadStatus Status { get; set; }
-        public Guid Guid { get; private set; }
 
         public ListDownloadStatusEventHandler OnListDownloadStatusChange;
 
@@ -22,31 +18,44 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             OnListDownloadStatusChange = onDownloadStatusChange;
             _ignoreDownloaded = false;
             _poolSize = poolSize;
-            Guid = Guid.NewGuid();
-            Status = new DownloadStatus {DownloadState = DownloadState.Initialized, Percentage = 0.0};
         }
 
         public void Download(bool ignoreDownloaded)
         {
+            var count = Entries.Count;
+            if (count == 0) return;
+            var firstEntry = Entries[0] as YoutubeEntry;
+            if (firstEntry != null) 
+                if (count == 1) 
+                    Title = firstEntry.Title;
+                else {
+                    Title = firstEntry.ChannelName;
+                    if (string.IsNullOrEmpty(Title)) Title = firstEntry.Title;
+                }
+
             UpdateStatus(DownloadState.AllStart, null, 0.0);
             _ignoreDownloaded = ignoreDownloaded;
-            foreach (var item in this) item.OnEntryDownloadStatusChange += OnDownloadStatusChanged;
+            foreach (YoutubeEntry item in Entries) item.OnEntryDownloadStatusChange += OnDownloadStatusChanged;
             DownloadFirst();
+
         }
 
-        private void OnDownloadStatusChanged(YoutubeEntry item, DownloadStatus status)
+        private void OnDownloadStatusChanged(IFeed feed, DownloadState downloadState, double percentage)
         {
-            var downloadCount = this.Count(p => !(p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error || p.Status.DownloadState == DownloadState.Initialized));
+            var downloadCount = Entries.Count(p => !(p.DownloadState == DownloadState.Ready || p.DownloadState == DownloadState.Error || p.DownloadState == DownloadState.Initialized));
             if (OnListDownloadStatusChange != null) {
-                Status.DownloadState = status.DownloadState;
-                var finishedCount = this.Count( p => (p.Status.DownloadState == DownloadState.Ready || p.Status.DownloadState == DownloadState.Error));
-                if (status.DownloadState == DownloadState.DownloadProgressChanged) {
-                    var avg = this.Average(entry => entry.Status.Percentage);
-                    Status.Percentage = avg; 
+                DownloadState = downloadState;
+                var finishedCount = Entries.Count(p => (p.DownloadState == DownloadState.Ready || p.DownloadState == DownloadState.Error));
+                if (downloadState == DownloadState.DownloadProgressChanged) {
+                    var avg = Entries.Average(entry => entry.Percentage);
+                    Percentage = avg; 
                 }
-                if(downloadCount == 0 && finishedCount == Count) 
-                    Status.DownloadState = DownloadState.AllFinished;
-                OnListDownloadStatusChange(this, item, Status);
+                if (downloadCount == 0 && finishedCount == Entries.Count) 
+                    DownloadState = DownloadState.AllFinished;
+                if (Entries.Count == 1 && downloadState == DownloadState.TitleChanged) {
+                    Title = Entries[0].Title;
+                }
+                OnListDownloadStatusChange(this, feed, DownloadState, Percentage);
             }
             if (downloadCount != _poolSize)  
                 DownloadFirst();
@@ -54,17 +63,17 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
         private void UpdateStatus(DownloadState state, YoutubeEntry entry, double percentage)
         {
-            Status.DownloadState = state;
-            Status.Percentage = percentage;
-            if (OnListDownloadStatusChange != null) OnListDownloadStatusChange(this, entry, Status);
+            DownloadState = state;
+            Percentage = percentage;
+            if (OnListDownloadStatusChange != null) OnListDownloadStatusChange(this, entry, DownloadState, Percentage);
         }
 
         private async void DownloadFirst()
         {
-            var first = this.FirstOrDefault(item => item.Status.DownloadState == DownloadState.Initialized);
-            if (first == null) return;
-            await first.DownloadAsync(MediaType, _ignoreDownloaded);
+            var first = Entries.FirstOrDefault(item => item.DownloadState == DownloadState.Initialized);
+            var entry = first as YoutubeEntry;
+            if (entry == null) return;
+            await entry.DownloadAsync(MediaType, _ignoreDownloaded);
         }
-
     }
 }

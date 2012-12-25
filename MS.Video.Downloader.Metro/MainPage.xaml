@@ -18,6 +18,7 @@
                     <Grid  VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="48">
                         <Button x:Name="GoBack" Content="&lt;" HorizontalAlignment="Left" Height="48" Margin="155,0,0,0" VerticalAlignment="Top" Click="GoBack_Click" Width="50" />
                         <Button x:Name="GoForward" Content="&gt;" HorizontalAlignment="Left" Height="48" Margin="205,0,0,0"  VerticalAlignment="Top" Click="GoForward_Click" Width="50" />
+                        <TextBox x:Name="Url" Text="URL" HorizontalAlignment="Left" Height="48"  VerticalAlignment="Top" Width="150" KeyDown="Url_KeyDown" />
                     </Grid>
                     <Grid x:Name="Content">
                         <StackPanel Margin="0,55,0,614" Orientation="Vertical">
@@ -44,9 +45,9 @@
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <TextBlock Text="{Binding Status.DownloadState}" />
-                            <ProgressBar Value="{Binding Status.Percentage}"  HorizontalAlignment="Stretch" Height="32" Width="300" VerticalAlignment="Top" Foreground="White"/>
-                            <local:DownloadListView></local:DownloadListView>
+                            <TextBlock Text="{Binding DownloadState}" />
+                            <TextBlock Text="{Binding Title}" />
+                            <ProgressBar Value="{Binding Percentage}"  HorizontalAlignment="Stretch" Height="32" Width="300" VerticalAlignment="Top" Foreground="White"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>

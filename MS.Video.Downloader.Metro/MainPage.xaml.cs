@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using MS.Video.Downloader.Service.Youtube;
 using MS.Video.Downloader.Service.Youtube.Dowload;
+using Windows.System;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -82,7 +84,7 @@ namespace MS.Video.Downloader.Metro
             }
         }
 
-        private void OnEntriesReady(IList<YoutubeEntry> entries)
+        private void OnEntriesReady(ObservableCollection<IFeed> entries)
         {
             if (entries.Count > 0) {
                 List.ItemsSource = entries;
@@ -148,6 +150,7 @@ namespace MS.Video.Downloader.Metro
 
         private void WebBrowser_LoadCompleted(object sender, NavigationEventArgs e)
         {
+            Url.Text = e.Uri.ToString();
             PrepareUrl(e.Uri);
         }
 
@@ -175,9 +178,9 @@ namespace MS.Video.Downloader.Metro
             //MixpanelTrack("Download List", new { downloadItems.Count });
         }
 
-        private void OnDownloadStatusChange(DownloadList downloadItems, YoutubeEntry entry, DownloadStatus status)
+        private void OnDownloadStatusChange(DownloadList downloadItems, IFeed entry, DownloadState downloadState, double percentage)
         {
-            switch (status.DownloadState) {
+            switch (downloadState) {
                 case DownloadState.AllStart:
                     Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => {
                         Log.Text = "START";
@@ -191,11 +194,11 @@ namespace MS.Video.Downloader.Metro
                         DownloadProcessRing.IsActive = false;
                         ProgressBar.Value = 0;
                     });
-                    downloadItems.Clear();
+                    downloadItems.Entries.Clear();
                     return;
                 case DownloadState.DownloadProgressChanged:
                     Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => {
-                        ProgressBar.Value = status.Percentage;
+                        ProgressBar.Value = percentage;
                     });
                     break;
             }
@@ -212,8 +215,13 @@ namespace MS.Video.Downloader.Metro
                                             ? Visibility.Visible
                                             : Visibility.Collapsed;
             if (DownloadStatusGrid.Visibility == Visibility.Visible) {
-                DownloadStatusGrid.ItemsSource = _lists;
+                DownloadStatusGrid.ItemsSource = _lists.Entries;
             }
+        }
+
+        private void Url_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            if(e.Key == VirtualKey.Enter) WebBrowser.Navigate(new Uri(Url.Text));
         }
 
     }

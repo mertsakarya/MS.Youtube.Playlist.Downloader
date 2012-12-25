@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using MS.Video.Downloader.Service.Youtube.MSYoutube;
@@ -11,20 +12,17 @@ using Windows.Storage;
 namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
 
-    public delegate void EntriesReady(IList<YoutubeEntry> entries);
+    public delegate void EntriesReady(ObservableCollection<IFeed> entries);
 
-    public delegate void EntryDownloadStatusEventHandler(YoutubeEntry entry, DownloadStatus status);
+    public delegate void EntryDownloadStatusEventHandler(IFeed feed, DownloadState downloadState, double percentage);
 
-    public class YoutubeEntry
+    public class YoutubeEntry : Feed
     {
         private readonly MSYoutubeSettings _settings;
         private Uri _uri;
 
         public YoutubeEntry Parent { get; private set; }
-        public string Title { get; set; }
         public string VideoExtension { get; set; }
-        public string Description { get; set; }
-        public string ThumbnailUrl { get; set; }
         public string[] ThumbnailUrls { get; set; }
         public YoutubeUrl YoutubeUrl { get; protected set; }
         public StorageFolder BaseFolder { get; set; }
@@ -32,8 +30,6 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
         public StorageFolder VideoFolder { get; set; }
         public StorageFolder DownloadFolder { get; set; }
         public MediaType MediaType { get; set; }
-        public Guid Guid { get; private set; }
-        public DownloadStatus Status { get; set; }
         public string ChannelName { get { return Parent == null ? "" : Parent.Title; } }
         public EntryDownloadStatusEventHandler OnEntryDownloadStatusChange;
         public Uri Uri
@@ -45,8 +41,6 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
         private YoutubeEntry(YoutubeEntry parent = null)
         {
             Parent = parent;
-            Guid = Guid.NewGuid();
-            Status = new DownloadStatus { DownloadState = DownloadState.Initialized, Percentage = 0.0 };
             _settings = new MSYoutubeSettings( "MS.Youtube.Downloader", "AI39si76x-DO4bui7H1o0P6x8iLHPBvQ24exnPiM8McsJhVW_pnCWXOXAa1D8-ymj0Bm07XrtRqxBC7veH6flVIYM7krs36kQg" ) {AutoPaging = true, PageSize = 50};
         }
 
@@ -54,7 +48,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
         private async void ConvertToMp3(bool ignore = false)
         {
-            if (Status.DownloadState != DownloadState.DownloadFinish) return;
+            if (DownloadState != DownloadState.DownloadFinish) return;
             var title = DownloadHelper.GetLegalPath(Title);
             var audioFileName = title + ".mp3";
             var videoFileName = title + VideoExtension;
@@ -83,9 +77,10 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
         private void UpdateStatus(DownloadState state, double percentage = 100.0)
         {
-            Status.DownloadState = state;
-            Status.Percentage = percentage;
-            if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, Status);
+            DownloadState = state;
+            Percentage = percentage;
+            if (OnEntryDownloadStatusChange != null)
+                OnEntryDownloadStatusChange(this, DownloadState, Percentage);
 
         }
 
@@ -117,7 +112,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             var request = new MSYoutubeRequest(_settings);
             var items = await request.GetAsync(YoutubeUrl, new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/playlists?v=2", youtubeUrl.UserId)), onYoutubeLoading);
             if (items == null) return;
-            var entries = new List<YoutubeEntry>();
+            Entries = new ObservableCollection<IFeed>();
 
             try {
                 if (!String.IsNullOrWhiteSpace(items.AuthorId)) {
@@ -125,7 +120,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                         Title = "Favorite Videos",
                         Uri = new Uri("http://www.youtube.com/playlist?list=FL" + items.AuthorId),
                     };
-                    entries.Add(favoritesEntry);
+                    Entries.Add(favoritesEntry);
                 }
                 foreach (var member in items.Entries) {
                     var entry = new YoutubeEntry(this) {
@@ -133,13 +128,13 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                         Uri = member.Uri,
                         Description = member.Description
                     };
-                    entries.Add(entry);
+                    Entries.Add(entry);
                 }
             }
             catch {
-                entries.Clear();
+                Entries.Clear();
             }
-            if (onEntriesReady != null) onEntriesReady(entries);
+            if (onEntriesReady != null) onEntriesReady(Entries);
         }
 
         private async void FillEntriesChannel(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
@@ -157,23 +152,23 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                 var request = new MSYoutubeRequest(_settings);
                 items = await request.GetAsync(YoutubeUrl, new Uri(url), onYoutubeLoading);
                 if (items == null) {
-                    if (onEntriesReady != null) onEntriesReady(new List<YoutubeEntry>());
+                    if (onEntriesReady != null) onEntriesReady(new ObservableCollection<IFeed>());
                     return;
                 }
                 if (String.IsNullOrEmpty(Title)) 
                     Title = items.Title;
             }
             catch {
-                if (onEntriesReady != null) onEntriesReady(new List<YoutubeEntry>());
+                if (onEntriesReady != null) onEntriesReady(new ObservableCollection<IFeed>());
                 return;
             }
-            var entries = GetMembers(items);
-            if (onEntriesReady != null) onEntriesReady(entries);
+            Entries = GetMembers(items);
+            if (onEntriesReady != null) onEntriesReady(Entries);
         }
 
-        private List<YoutubeEntry> GetMembers(MSYoutubeEntry items)
+        private ObservableCollection<IFeed> GetMembers(MSYoutubeEntry items)
         {
-            var entries = new List<YoutubeEntry>();
+            var entries = new ObservableCollection<IFeed>();
             MSYoutubeEntry[] members;
             try {
                 members = items.Entries.Where(member => member.Uri != null).ToArray();
@@ -218,18 +213,18 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             if (videoInfo == null) { UpdateStatus(DownloadState.Error); return; }
             Title = videoInfo.Title;
             VideoExtension = videoInfo.VideoExtension;
-            Status.DownloadState = DownloadState.TitleChanged;
+            DownloadState = DownloadState.TitleChanged;
             var videoFile = DownloadHelper.GetLegalPath(Title) + VideoExtension;
             var fileExists = await DownloadHelper.FileExists(VideoFolder, videoFile);
             if (!(ignore && fileExists)) {
-                if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, Status);
+                if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, DownloadState, Percentage);
                 await DownloadHelper.DownloadToFileAsync(videoInfo.DownloadUri, VideoFolder, videoFile,
                     (count, total) => UpdateStatus(DownloadState.DownloadProgressChanged, ((double) count/total) * ((MediaType == MediaType.Audio) ? 50 : 100)));
             }
 
-            Status.DownloadState = DownloadState.DownloadFinish;
+            DownloadState = DownloadState.DownloadFinish;
             if (MediaType == MediaType.Audio) {
-                Status.Percentage = 50.0;
+                Percentage = 50.0;
                 ConvertToMp3(ignore);
             }  else if (OnEntryDownloadStatusChange != null) 
                 UpdateStatus(DownloadState.Ready);
@@ -250,13 +245,8 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                 Parent = Parent,
                 Description = Description,
                 DownloadFolder = DownloadFolder,
-                Guid = new Guid(),
                 ProviderFolder = ProviderFolder,
                 MediaType = MediaType,
-                Status = new DownloadStatus {
-                    DownloadState = DownloadState.Initialized,
-                    Percentage = 0.0,
-                },
                 ThumbnailUrl = ThumbnailUrl,
                 Uri = Uri,
                 VideoExtension = VideoExtension,
@@ -275,5 +265,6 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             var entry =  new YoutubeEntry(parent) { Uri = uri };
             return entry;
         }
+
     }
 }
