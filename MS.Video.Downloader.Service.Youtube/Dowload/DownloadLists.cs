@@ -5,9 +5,13 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
     public class DownloadLists : Feed
     {
-        public ListDownloadStatusEventHandler OnStatusChanged;
+        private readonly ListDownloadStatusEventHandler _onStatusChanged;
 
-        public DownloadList Add(IEnumerable entries, MediaType mediaType, bool ignoreDownloaded)
+        public DownloadLists(ListDownloadStatusEventHandler onStatusChanged)
+        {
+            _onStatusChanged = onStatusChanged;
+        }
+        public Feed Add(IEnumerable entries, MediaType mediaType, bool ignoreDownloaded)
         {
             var downloadItems = new DownloadList(mediaType, OnDownloadStatusChange);
             foreach (YoutubeEntry member in entries)
@@ -18,9 +22,9 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             return downloadItems;
         }
 
-        private void OnDownloadStatusChange(DownloadList downloadList, IFeed entry, DownloadState downloadState, double percentage)
+        private void OnDownloadStatusChange(Feed downloadList, Feed entry, DownloadState downloadState, double percentage)
         {
-            if (Entries.Count <= 0 || OnStatusChanged == null) return;
+            if (Entries.Count <= 0 || _onStatusChanged == null) return;
             var finishedCount = Entries.Count(p => p.DownloadState == DownloadState.AllFinished);
             if (downloadState == DownloadState.DownloadProgressChanged)
                 UpdateStatus(downloadList, entry, DownloadState.DownloadProgressChanged, Entries.Average(en => en.Percentage));
@@ -28,19 +32,19 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                 UpdateStatus(downloadList, entry, DownloadState.AllFinished, 100.0);
             else if (Entries.Count == 1 && downloadState == DownloadState.AllStart)
                 UpdateStatus(downloadList, entry, DownloadState.AllStart, 0.0);
-            else if(OnStatusChanged != null && 
+            else if(_onStatusChanged != null && 
                     !(downloadState == DownloadState.AllFinished || 
                         downloadState == DownloadState.AllStart || 
                         downloadState == DownloadState.DownloadProgressChanged
                     )) 
-                OnStatusChanged(downloadList, entry, downloadState, percentage);
+                _onStatusChanged(downloadList, entry, downloadState, percentage);
         }
 
-        private void UpdateStatus(DownloadList downloadList, IFeed entry, DownloadState state, double percentage)
+        private void UpdateStatus(Feed downloadList, Feed entry, DownloadState state, double percentage)
         {
             DownloadState = state;
             Percentage = percentage;
-            if (OnStatusChanged != null) OnStatusChanged(downloadList, entry, DownloadState, Percentage);
+            if (_onStatusChanged != null) _onStatusChanged(downloadList, entry, DownloadState, Percentage);
         }
 
         public new string Title { get { return "TOTAL"; } }

@@ -38,20 +38,10 @@
             </Grid>
         </Grid>
         <Grid Margin="256,1,1,1" >
-            <Grid x:Name="WebViewGrid" Margin="0,0,0,0" SizeChanged="WebViewGrid_SizeChanged" Canvas.ZIndex="2"  Visibility="Collapsed">
+            <Grid x:Name="WebViewGrid" Margin="0,0,0,0" SizeChanged="WebViewGrid_SizeChanged" Canvas.ZIndex="2" >
                 <WebView x:Name="WebBrowser" Canvas.ZIndex="5" Margin="0,0,135,262" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" LoadCompleted="WebBrowser_LoadCompleted" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Width="975"/>
             </Grid>
-            <ListView x:Name="DownloadStatusGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" >
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding DownloadState}" />
-                            <TextBlock Text="{Binding Title}" />
-                            <ProgressBar Value="{Binding Percentage}"  HorizontalAlignment="Stretch" Height="32" Width="300" VerticalAlignment="Top" Foreground="White"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+            <local:DownloadListView x:Name="DownloadStatusGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"  Visibility="Collapsed"/>
         </Grid>
     </Grid>
 </Page>

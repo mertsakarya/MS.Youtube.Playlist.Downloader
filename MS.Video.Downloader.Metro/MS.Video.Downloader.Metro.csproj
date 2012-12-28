@@ -110,8 +110,12 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="DatabindingDebugConverter.cs" />
     <Compile Include="DownloadListView.xaml.cs">
       <DependentUpon>DownloadListView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DownloadListViewItem.xaml.cs">
+      <DependentUpon>DownloadListViewItem.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
@@ -140,6 +144,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="DownloadListView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="DownloadListViewItem.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

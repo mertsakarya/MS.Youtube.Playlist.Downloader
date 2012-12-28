@@ -3,7 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:MS.Video.Downloader.Metro">
-
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -14,7 +13,8 @@
                  -->
                 <ResourceDictionary Source="Common/StandardStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
+            <local:DatabindingDebugConverter x:Key="DebugConverter" />
+            <local:DatabindingImageSourceConverter x:Key="ImageSourceConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

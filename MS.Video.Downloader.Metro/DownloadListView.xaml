@@ -9,17 +9,26 @@
     d:DesignHeight="300"
     d:DesignWidth="400"
     >
-    
-    <Grid>
-        <ListView x:Name="DownloadListGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"  Visibility="Collapsed">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel>
-                        <TextBlock Text="{Binding Title}" />
-                        <ProgressBar Value="{Binding Status.Percentage}"  HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Foreground="White"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+    <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Border BorderBrush="#FFAC4E4E" BorderThickness="2" >
+            <ListView x:Name="DownloadListGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SelectionChanged="DownloadListGrid_SelectionChanged" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Tapped="StackPanel_Tapped_1" Margin="10,2,2,2">
+                            <local:DownloadListViewItem x:Name="DownloadListViewItem1" HorizontalAlignment="Stretch" Width="3000" Margin="0,0,0,0"></local:DownloadListViewItem>
+                            <ListView x:Name="SubDownloadListGrid" ItemsSource="{Binding Entries}" Margin="10,98,1,1"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Visibility="Collapsed">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Tapped="StackPanel_Tapped_1" Margin="10,2,2,2">
+                                            <local:DownloadListViewItem DataContext="{Binding RelativeSource={RelativeSource Self}}" HorizontalAlignment="Stretch" Width="600" Margin="0,0,0,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
     </Grid>
 </UserControl>

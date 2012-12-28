@@ -22,13 +22,14 @@ namespace MS.Video.Downloader.Metro
         private YoutubeUrl _youtubeUrl;
         private YoutubeEntry _playlist;
         private readonly WebViewWrapper _webView;
-        private readonly DownloadLists _lists;
+        private readonly Feed _lists;
         public MainPage() { 
             InitializeComponent();
-            _lists = new DownloadLists();
-            _lists.OnStatusChanged += OnDownloadStatusChange;
+            _lists = new DownloadLists(OnDownloadStatusChange);
             _webView = new WebViewWrapper(WebBrowser);
             _webView.Navigating += (sender, args) => Loading();
+            DownloadStatusGrid.DataContext = _lists;
+            DownloadStatusGrid.ItemsSource = _lists.Entries;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e) { }
@@ -84,7 +85,7 @@ namespace MS.Video.Downloader.Metro
             }
         }
 
-        private void OnEntriesReady(ObservableCollection<IFeed> entries)
+        private void OnEntriesReady(ObservableCollection<Feed> entries)
         {
             if (entries.Count > 0) {
                 List.ItemsSource = entries;
@@ -174,11 +175,13 @@ namespace MS.Video.Downloader.Metro
         private void DownloadList(IEnumerable list)
         {
             var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
-            _lists.Add(list, mediaType, false);
+            var downloadLists = _lists as DownloadLists;
+            if(downloadLists != null)
+                downloadLists.Add(list, mediaType, false);
             //MixpanelTrack("Download List", new { downloadItems.Count });
         }
 
-        private void OnDownloadStatusChange(DownloadList downloadItems, IFeed entry, DownloadState downloadState, double percentage)
+        private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
             switch (downloadState) {
                 case DownloadState.AllStart:
@@ -214,9 +217,7 @@ namespace MS.Video.Downloader.Metro
             WebViewGrid.Visibility = (DownloadStatusGrid.Visibility == Visibility.Collapsed)
                                             ? Visibility.Visible
                                             : Visibility.Collapsed;
-            if (DownloadStatusGrid.Visibility == Visibility.Visible) {
-                DownloadStatusGrid.ItemsSource = _lists.Entries;
-            }
+
         }
 
         private void Url_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)

@@ -2,7 +2,7 @@
 
 namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
-    public delegate void ListDownloadStatusEventHandler(DownloadList list, IFeed feed, DownloadState downloadState, double percentage);
+    public delegate void ListDownloadStatusEventHandler(Feed list, Feed feed, DownloadState downloadState, double percentage);
 
     public class DownloadList : Feed
     {
@@ -40,7 +40,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
 
         }
 
-        private void OnDownloadStatusChanged(IFeed feed, DownloadState downloadState, double percentage)
+        private void OnDownloadStatusChanged(Feed feed, DownloadState downloadState, double percentage)
         {
             var downloadCount = Entries.Count(p => !(p.DownloadState == DownloadState.Ready || p.DownloadState == DownloadState.Error || p.DownloadState == DownloadState.Initialized));
             if (OnListDownloadStatusChange != null) {

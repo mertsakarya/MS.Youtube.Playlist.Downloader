@@ -12,9 +12,9 @@ using Windows.Storage;
 namespace MS.Video.Downloader.Service.Youtube.Dowload
 {
 
-    public delegate void EntriesReady(ObservableCollection<IFeed> entries);
+    public delegate void EntriesReady(ObservableCollection<Feed> entries);
 
-    public delegate void EntryDownloadStatusEventHandler(IFeed feed, DownloadState downloadState, double percentage);
+    public delegate void EntryDownloadStatusEventHandler(Feed feed, DownloadState downloadState, double percentage);
 
     public class YoutubeEntry : Feed
     {
@@ -112,7 +112,7 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
             var request = new MSYoutubeRequest(_settings);
             var items = await request.GetAsync(YoutubeUrl, new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/playlists?v=2", youtubeUrl.UserId)), onYoutubeLoading);
             if (items == null) return;
-            Entries = new ObservableCollection<IFeed>();
+            Entries = new ObservableCollection<Feed>();
 
             try {
                 if (!String.IsNullOrWhiteSpace(items.AuthorId)) {
@@ -152,23 +152,23 @@ namespace MS.Video.Downloader.Service.Youtube.Dowload
                 var request = new MSYoutubeRequest(_settings);
                 items = await request.GetAsync(YoutubeUrl, new Uri(url), onYoutubeLoading);
                 if (items == null) {
-                    if (onEntriesReady != null) onEntriesReady(new ObservableCollection<IFeed>());
+                    if (onEntriesReady != null) onEntriesReady(new ObservableCollection<Feed>());
                     return;
                 }
                 if (String.IsNullOrEmpty(Title)) 
                     Title = items.Title;
             }
             catch {
-                if (onEntriesReady != null) onEntriesReady(new ObservableCollection<IFeed>());
+                if (onEntriesReady != null) onEntriesReady(new ObservableCollection<Feed>());
                 return;
             }
             Entries = GetMembers(items);
             if (onEntriesReady != null) onEntriesReady(Entries);
         }
 
-        private ObservableCollection<IFeed> GetMembers(MSYoutubeEntry items)
+        private ObservableCollection<Feed> GetMembers(MSYoutubeEntry items)
         {
-            var entries = new ObservableCollection<IFeed>();
+            var entries = new ObservableCollection<Feed>();
             MSYoutubeEntry[] members;
             try {
                 members = items.Entries.Where(member => member.Uri != null).ToArray();

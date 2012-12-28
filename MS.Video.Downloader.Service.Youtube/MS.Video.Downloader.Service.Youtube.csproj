@@ -112,6 +112,7 @@
     <Compile Include="MSYoutube\MSYoutubeRequest.cs" />
     <Compile Include="MSYoutube\MSYoutubeSettings.cs" />
     <Compile Include="MSYoutube\MSYoutubeThumbnail.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Dowload\VideoInfo.cs" />
     <Compile Include="Enumerations.cs" />
