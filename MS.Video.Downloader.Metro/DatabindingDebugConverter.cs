@@ -15,7 +15,8 @@ namespace MS.Video.Downloader.Metro
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            var feed = value as Feed;
+            var presenter = value as ContentPresenter;
+            var feed = presenter.Content as Feed;
             return feed;
         }
 

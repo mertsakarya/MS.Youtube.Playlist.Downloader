@@ -1,0 +1,90 @@
+﻿using System.Threading.Tasks;
+
+namespace ms.video.downloader.service.Dowload
+{
+    public delegate void ListDownloadStatusEventHandler(Feed list, Feed feed, DownloadState downloadState, double percentage);
+
+    public class DownloadList : Feed
+    {
+        public MediaType MediaType { get; set; }
+        private bool _ignoreDownloaded;
+        private readonly int _poolSize;
+
+        public ListDownloadStatusEventHandler OnListDownloadStatusChange;
+
+        public DownloadList(MediaType mediaType, ListDownloadStatusEventHandler onDownloadStatusChange = null, int poolSize = 3)
+        {
+            MediaType = mediaType;
+            OnListDownloadStatusChange = onDownloadStatusChange;
+            _ignoreDownloaded = false;
+            _poolSize = poolSize;
+        }
+
+        public void Download(bool ignoreDownloaded)
+        {
+            var count = Entries.Count;
+            if (count == 0) return;
+            var firstEntry = Entries[0] as YoutubeEntry;
+            if (firstEntry != null) 
+                if (count == 1) 
+                    Title = firstEntry.Title;
+                else {
+                    Title = firstEntry.ChannelName;
+                    if (string.IsNullOrEmpty(Title)) Title = firstEntry.Title;
+                }
+
+            UpdateStatus(DownloadState.AllStart, null, 0.0);
+            _ignoreDownloaded = ignoreDownloaded;
+            foreach (YoutubeEntry item in Entries) item.OnEntryDownloadStatusChange += OnDownloadStatusChanged;
+            DownloadFirst();
+
+        }
+
+        private void  OnDownloadStatusChanged(Feed feed, DownloadState downloadState, double percentage)
+        {
+            var finishedCount = 0;
+            var downloadCount = 0;
+            var average = 0.0;
+            foreach (var en in Entries) {
+                if (en.DownloadState == DownloadState.Ready || en.DownloadState == DownloadState.Error)
+                    finishedCount++;
+                if (!(en.DownloadState == DownloadState.Ready || en.DownloadState == DownloadState.Error || en.DownloadState == DownloadState.Initialized))
+                    downloadCount++;
+                average += en.Percentage;
+            }
+            average = average / Entries.Count;
+
+            if (OnListDownloadStatusChange != null) {
+                DownloadState = downloadState;
+                if (downloadState == DownloadState.DownloadProgressChanged) {
+                    Percentage = average; 
+                }
+                if (downloadCount == 0 && finishedCount == Entries.Count) 
+                    DownloadState = DownloadState.AllFinished;
+                if (Entries.Count == 1 && downloadState == DownloadState.TitleChanged) {
+                    Title = Entries[0].Title;
+                }
+                OnListDownloadStatusChange(this, feed, DownloadState, Percentage);
+            }
+            if (downloadCount != _poolSize)  
+                DownloadFirst();
+        }
+
+        private void UpdateStatus(DownloadState state, YoutubeEntry entry, double percentage)
+        {
+            DownloadState = state;
+            Percentage = percentage;
+            if (OnListDownloadStatusChange != null) OnListDownloadStatusChange(this, entry, DownloadState, Percentage);
+        }
+
+        private async void DownloadFirst()
+        {
+            for (var i = 0; i < Entries.Count; i++) {
+                var entry = Entries[i] as YoutubeEntry;
+                if (entry == null || entry.DownloadState != DownloadState.Initialized) continue;
+                await entry.DownloadAsync(MediaType, _ignoreDownloaded);
+                break;
+            }
+        }
+    }
+}

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D7CDFD0E-4DF1-4697-A8E5-DEFD5F2E33EA}</ProjectGuid>
+    <ProjectGuid>{EA4603E1-2493-47DD-A2F3-3EFF59D3D4FF}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MS.Video.Downloader.Service</RootNamespace>
-    <AssemblyName>MS.Video.Downloader.Service</AssemblyName>
+    <RootNamespace>ms.video.downloader.service</RootNamespace>
+    <AssemblyName>ms.video.downloader.service</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>
@@ -42,33 +42,12 @@
     <AssemblyOriginatorKeyFile>MS.Video.Downloader.Key.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Google.GData.Client">
-      <HintPath>..\packages\Google.GData.Client.2.1.0.0\lib\Google.GData.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Google.GData.Extensions">
-      <HintPath>..\packages\Google.GData.Extensions.2.1.0.0\lib\Google.GData.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Google.GData.YouTube">
-      <HintPath>..\packages\Google.GData.YouTube.2.1.0.0\lib\Google.GData.YouTube.dll</HintPath>
-    </Reference>
-    <Reference Include="HtmlAgilityPack">
-      <HintPath>..\packages\HtmlAgilityPack.1.4.6\lib\Net45\HtmlAgilityPack.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.4.5.7\lib\net40\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="policy.2.0.taglib-sharp">
       <HintPath>..\packages\taglib.2.1.0.0\lib\policy.2.0.taglib-sharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Web" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="taglib-sharp">
       <HintPath>..\packages\taglib.2.1.0.0\lib\taglib-sharp.dll</HintPath>
@@ -76,25 +55,22 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ApplicationConfiguration.cs" />
-    <Compile Include="DownloadItems.cs" />
-    <Compile Include="DownloadLists.cs" />
-    <Compile Include="DownloadState.cs" />
-    <Compile Include="DownloadStatus.cs" />
-    <Compile Include="LocalService.cs" />
-    <Compile Include="MediaType.cs" />
-    <Compile Include="Models\Entry.cs" />
-    <Compile Include="Models\YoutubeEntry.cs" />
-    <Compile Include="Models\YoutubeUrl.cs" />
+    <Compile Include="Dowload\AudioConverter.cs" />
+    <Compile Include="Dowload\DownloadHelper.cs" />
+    <Compile Include="Dowload\DownloadList.cs" />
+    <Compile Include="Dowload\DownloadLists.cs" />
+    <Compile Include="Dowload\DownloadStatus.cs" />
+    <Compile Include="Dowload\Feed.cs" />
+    <Compile Include="Dowload\KnownFolders.cs" />
+    <Compile Include="Dowload\VideoInfo.cs" />
+    <Compile Include="Dowload\YoutubeEntry.cs" />
+    <Compile Include="Dowload\YoutubeUrl.cs" />
+    <Compile Include="Enumerations.cs" />
+    <Compile Include="MSYoutube\MSYoutubeEntry.cs" />
+    <Compile Include="MSYoutube\MSYoutubeRequest.cs" />
+    <Compile Include="MSYoutube\MSYoutubeSettings.cs" />
+    <Compile Include="MSYoutube\MSYoutubeThumbnail.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Youtube\ContentProviderType.cs" />
-    <Compile Include="Youtube\VideoEntry.cs" />
-    <Compile Include="Youtube\AudioType.cs" />
-    <Compile Include="Youtube\VideoType.cs" />
-    <Compile Include="Youtube\VideoUrlType.cs" />
-    <Compile Include="Youtube\DownloadUrlResolver.cs" />
-    <Compile Include="Youtube\VideoInfo.cs" />
-    <Compile Include="Models\VideoUrl.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="MS.Video.Downloader.Key.pfx" />
@@ -102,10 +78,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

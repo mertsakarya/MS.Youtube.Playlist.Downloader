@@ -100,13 +100,6 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
-    <ProjectReference Include="..\MS.Video.Downloader.Service.Youtube\MS.Video.Downloader.Service.Youtube.csproj">
-      <Project>{94c01e1c-605f-4736-9f76-e389cec64bef}</Project>
-      <Name>MS.Video.Downloader.Service.Youtube</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
