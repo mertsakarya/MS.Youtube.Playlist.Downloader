@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -76,6 +75,7 @@ namespace ms.video.downloader.win
             DownloadStatusGrid.DataContext = _lists;
             DownloadStatusGrid.ItemsSource = _lists.Entries;
             Navigate(new Uri("http://www.youtube.com/"));
+            Count.Text = "";
         }
 
         private void Browser_LoadCompleted(object sender, NavigationEventArgs e)
@@ -89,13 +89,11 @@ namespace ms.video.downloader.win
             Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { 
                 if (entries.Count > 0) {
                     List.ItemsSource = entries;
-                    Count.Text = entries.Count.ToString(CultureInfo.InvariantCulture);
+                    Count.Text = String.Format("{0} ITEMS", entries.Count);
                     Count.Visibility = Visibility.Visible;
-                    ItemsText.Visibility = Visibility.Visible;
                 }
                 else {
                     Count.Visibility = Visibility.Collapsed;
-                    ItemsText.Visibility = Visibility.Collapsed;
                 }
                 Loading(false);
             }));
@@ -115,7 +113,6 @@ namespace ms.video.downloader.win
             InteractionPane.Visibility = (!value) ? Visibility.Visible : Visibility.Collapsed;
             if (value) {
                 Count.Visibility = Visibility.Collapsed;
-                ItemsText.Visibility = Visibility.Collapsed;
                 return;
             }
             GetList.Visibility = Visibility.Collapsed;

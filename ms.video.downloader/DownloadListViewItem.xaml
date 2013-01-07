@@ -8,6 +8,6 @@
     <Grid HorizontalAlignment="Stretch" Height="90" VerticalAlignment="Top">
         <Image Source="{Binding Path=ThumbnailUrl}"  HorizontalAlignment="Left" Height="90" VerticalAlignment="Top" Width="120"/>
         <TextBlock Text="{Binding Path=Title}" Height="32" VerticalAlignment="Top" Margin="125,0,10,0"/>
-        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" HorizontalAlignment="Stretch" Foreground="White" Margin="125,34,10,0" Height="32"/>
+        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" HorizontalAlignment="Stretch" Foreground="CornflowerBlue" Margin="125,34,10,0" Height="32"/>
     </Grid>
 </UserControl>

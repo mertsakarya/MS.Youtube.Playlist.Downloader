@@ -11,18 +11,17 @@
                 </Grid>
                 <Grid x:Name="InteractionPane" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="255" Visibility="Visible">
                     <Grid x:Name="Content1">
-                        <StackPanel Margin="0,0,0,56" Orientation="Vertical" Height="97" VerticalAlignment="Bottom" Grid.ColumnSpan="2">
-                            <Button x:Name="GetVideo" Content="Download Video" HorizontalAlignment="Stretch" Height="48" Margin="0,0,0,0" VerticalAlignment="Top" Click="GetVideo_Click" />
-                            <Button x:Name="GetList" Content="Download Playlist" HorizontalAlignment="Stretch" Height="48" Margin="0,0,0,0" VerticalAlignment="Top" Click="GetList_Click" />
+                        <StackPanel Margin="0,0,0,50" Orientation="Horizontal" Height="48" VerticalAlignment="Bottom">
+                            <Button x:Name="GetVideo" Content="Download Video" HorizontalAlignment="Stretch" Height="48" Margin="0,0,0,0" VerticalAlignment="Top" Click="GetVideo_Click" Width="120" />
+                            <Button x:Name="GetList" Content="Download Playlist" HorizontalAlignment="Stretch" Height="48" Margin="0,0,0,0" VerticalAlignment="Top" Click="GetList_Click" Width="134" />
                         </StackPanel>
-                        <CheckBox x:Name="ConvertMp3" Content="Convert to MP3" Margin="0,0,10,153" VerticalAlignment="Bottom" Height="18" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Right" Width="103" />
-                        <ListView x:Name="List" HorizontalAlignment="Stretch"  Margin="0,0,0,176" SelectionMode="Multiple" SelectionChanged="List_SelectionChanged" />
-                        <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Bottom" Foreground="White" />
-                        <TextBlock x:Name="Log" Text="" HorizontalAlignment="Stretch" Height="24" VerticalAlignment="Bottom" Margin="0,0,31,32" FontSize="14" FontWeight="Bold"/>
-                        <TextBlock x:Name="Count" HorizontalAlignment="Left" Margin="0,0,0,159" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" Height="23" Width="63" FontSize="20" FontWeight="Bold" FontStyle="Italic" FlowDirection="RightToLeft"/>
-                        <TextBlock x:Name="ItemsText" HorizontalAlignment="Left" Margin="68,0,0,147" Text="ITEMS" VerticalAlignment="Bottom" Height="23" Width="39"  Visibility="Collapsed" />
-                        <Button Content="&gt;"  HorizontalAlignment="Right" Margin="0,0,2,32" VerticalAlignment="Bottom" Width="24" Height="24" Background="CornflowerBlue" Click="Button_Click_1" />
-                    </Grid>
+                        <CheckBox x:Name="ConvertMp3" Content="Convert to MP3" Margin="0,0,10,25" VerticalAlignment="Bottom" Height="18" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Right" Width="103" />
+                        <ListView x:Name="List" HorizontalAlignment="Stretch"  Margin="0,0,0,103" SelectionMode="Multiple" SelectionChanged="List_SelectionChanged" >
+                        </ListView>
+                            <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Stretch" Height="24" MouseDown="Button_Click_1" VerticalAlignment="Bottom" Foreground="CornflowerBlue" />
+                            <TextBlock x:Name="Log" Text="" HorizontalAlignment="Stretch" Height="24" VerticalAlignment="Bottom" FontSize="14" FontWeight="Bold" MouseDown="Button_Click_1" TextTrimming="CharacterEllipsis" ToolTip="{Binding TemplatedParent, Mode=OneWay, RelativeSource={RelativeSource Self}}"  />
+                            <TextBlock x:Name="Count" TextWrapping="Wrap" Text="0" VerticalAlignment="Bottom" Height="23" Width="123" FontSize="20" FontWeight="Bold" FontStyle="Italic" Margin="0,0,0,29" HorizontalAlignment="Left"/>
+                        </Grid>
                 </Grid>
             </Grid>
             </Border>
@@ -32,7 +31,7 @@
                 <Grid  VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="32">
                     <Button x:Name="GoBack" Content="&lt;" HorizontalAlignment="Left" Height="32" Margin="0,0,0,0" VerticalAlignment="Top" Click="GoBack_Click" Width="32" />
                     <Button x:Name="GoForward" Content="&gt;" HorizontalAlignment="Left" Height="32" Margin="32,0,0,0"  VerticalAlignment="Top" Click="GoForward_Click" Width="32" />
-                    <TextBox x:Name="Url" Text="URL" Margin="64,0,-1,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" />
+                    <TextBox x:Name="Url" Text="URL" Margin="64,0,0,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" />
                 </Grid>
                 <WebBrowser x:Name="Browser" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,32,0,0" LoadCompleted="Browser_LoadCompleted" Navigated="Browser_Navigated"/>
             </Grid>

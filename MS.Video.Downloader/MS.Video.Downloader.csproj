@@ -103,6 +103,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Converters.cs" />
     <Compile Include="DownloadListView.xaml.cs">
       <DependentUpon>DownloadListView.xaml</DependentUpon>
     </Compile>

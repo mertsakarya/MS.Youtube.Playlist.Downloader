@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Management;
 using System.Net;
 using System.Xml;
 using TagLib;
@@ -16,7 +15,6 @@ namespace ms.video.downloader.service.Dowload
         private readonly EntryDownloadStatusEventHandler _onEntryDownloadStatusChange;
         private readonly YoutubeEntry _youtubeEntry;
         private readonly string _applicationPath;
-        private const string Scope = @"\\.\root\CIMV2";
 
         public AudioConverter(YoutubeEntry youtubeEntry, EntryDownloadStatusEventHandler onEntryDownloadStatusChange)
         {
