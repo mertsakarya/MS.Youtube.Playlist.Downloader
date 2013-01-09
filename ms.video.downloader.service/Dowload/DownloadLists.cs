@@ -40,8 +40,6 @@ namespace ms.video.downloader.service.Dowload
         {
             if (Entries.Count <= 0 || _onStatusChanged == null) return;
             if (downloadState == DownloadState.Deleted) {
-                foreach (var en in Entries)
-                    en.Delete();
                 Entries.Remove(downloadList);
                 _settings.SaveDownloadLists(this);
                 return;
