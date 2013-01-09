@@ -7,25 +7,23 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-        <Border BorderBrush="#FF606060" BorderThickness="2" >
-            <ListView x:Name="DownloadListGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SelectionChanged="DownloadListGrid_SelectionChanged" >
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10,2,2,2" MouseDown="Grid_MouseDown_1">
-                            <local:DownloadListViewItem HorizontalAlignment="Left" Width="600" Margin="0,0,0,0" />
-                            <ListView x:Name="SubDownloadListGrid" ItemsSource="{Binding Entries}" Margin="10,98,1,1"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Visibility="Collapsed">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10,2,2,2" MouseDown="Grid_MouseDown_1">
-                                            <local:DownloadListViewItem DataContext="{Binding Converter={StaticResource EntryConverter}, RelativeSource={RelativeSource Mode=TemplatedParent}}" HorizontalAlignment="Stretch" Width="600" Margin="0,0,0,0"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </Border>
+        <ListView x:Name="DownloadListGrid" Margin="0,0,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SelectionChanged="DownloadListGrid_SelectionChanged">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10,2,2,2" MouseDown="Grid_MouseDown_1">
+                        <local:DownloadListViewItem HorizontalAlignment="Stretch" Width="650" Margin="0,0,0,0" />
+                        <ListView x:Name="SubDownloadListGrid" ItemsSource="{Binding Entries}" Margin="0,31,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"  ScrollViewer.VerticalScrollBarVisibility="Visible" Height="200"  Visibility="Collapsed">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10,2,2,2" MouseDown="Grid_MouseDown_1">
+                                        <local:DownloadListViewItem Width="650" DataContext="{Binding Converter={StaticResource EntryConverter}, RelativeSource={RelativeSource Mode=TemplatedParent}}" HorizontalAlignment="Stretch" Margin="0,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
     </Grid>
 </UserControl>

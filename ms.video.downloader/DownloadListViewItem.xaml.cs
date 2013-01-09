@@ -11,6 +11,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using ms.video.downloader.service;
+using ms.video.downloader.service.Dowload;
 
 namespace ms.video.downloader
 {
@@ -22,6 +24,33 @@ namespace ms.video.downloader
         public DownloadListViewItem()
         {
             InitializeComponent();
+            var feed = Item.Tag as Feed;
+            if (feed != null) {
+                if (feed.ExecutionStatus == ExecutionStatus.Paused)
+                    Pause.Content = "Cont.";
+            }
+        }
+
+        private void Pause_Click(object sender, RoutedEventArgs e)
+        {
+            var feed = Item.Tag as Feed;
+            if (feed != null) {
+                if ((string) Pause.Content == "Pause") {
+                    feed.Pause();
+                    Pause.Content = "Cont.";
+                }
+                else {
+                    feed.Continue();
+                    Pause.Content = "Pause";
+                }
+            }
+        }
+
+        private void Delete_Click(object sender, RoutedEventArgs e)
+        {
+            var feed = Item.Tag as Feed;
+            if (feed != null)
+                feed.Delete();
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Navigation;
 using Newtonsoft.Json;
 using ms.video.downloader.service;
@@ -14,28 +15,34 @@ namespace ms.video.downloader
 {
     public partial class MainWindow : Window
     {
+        public readonly DownloadLists Lists;
         private YoutubeUrl _youtubeUrl;
-        private readonly DownloadLists _lists;
         private readonly LocalService _settings;
-        
+
         public MainWindow()
-        { 
+        {
             InitializeComponent();
             _settings = new LocalService();
-            _lists = new DownloadLists(_settings, OnDownloadStatusChange);
+            Title = "MS.Video.Downloader ver. " + _settings.Version;
+            Lists = new DownloadLists(_settings, OnDownloadStatusChange);
             Loading(false);
         }
-        
+
         private void Window_Loaded_1(object sender, RoutedEventArgs e)
         {
-            DownloadStatusGrid.DataContext = _lists;
-            DownloadStatusGrid.ItemsSource = _lists.Entries;
-            var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
-            var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
+            DownloadStatusGrid.DataContext = Lists;
+            DownloadStatusGrid.ItemsSource = Lists.Entries;
+            var firstTimeString = (_settings.FirstTime
+                                       ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});"
+                                       : "");
+            var paypalHtml =
+                Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString())
+                          .Replace("|1|", firstTimeString)
+                          .Replace("|2|", _settings.Version);
             Paypal.NavigateToString(paypalHtml);
             Navigate(new Uri("http://www.youtube.com/"));
         }
-        
+
         private void Loading(bool show = true)
         {
             GetList.Visibility = Visibility.Collapsed;
@@ -57,22 +64,39 @@ namespace ms.video.downloader
                 }
             }
         }
-        
+
         private void Browser_LoadCompleted(object sender, NavigationEventArgs e)
         {
             Url.Text = e.Uri.ToString();
-            MixpanelTrack("Navigated", new {Url=e.Uri.ToString(), _settings.Guid});
+            MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), _settings.Guid});
             _youtubeUrl = YoutubeUrl.Create(e.Uri);
             Loading();
         }
-        
-        private void Navigate(Uri uri) { Loading(false); Browser.Navigate(uri); }
-       
-        private void GoBack_Click(object sender, RoutedEventArgs e) { if(Browser.CanGoBack) Browser.GoBack();  }
-        
-        private void GoForward_Click(object sender, RoutedEventArgs e) { if(Browser.CanGoForward) Browser.GoForward();  } // { Browser.InvokeScript("eval", new[] { "history.go(1)" }); }
-        
-        private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
+
+        private void Navigate(Uri uri)
+        {
+            Loading(false);
+            Browser.Navigate(uri);
+        }
+
+        private void GoBack_Click(object sender, RoutedEventArgs e)
+        {
+            if (Browser.CanGoBack) Browser.GoBack();
+        }
+
+        private void GoForward_Click(object sender, RoutedEventArgs e)
+        {
+            if (Browser.CanGoForward) Browser.GoForward();
+        } // { Browser.InvokeScript("eval", new[] { "history.go(1)" }); }
+
+        private void Url_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter && e.Key != Key.Return) return;
+            Uri uri;
+            if(Uri.TryCreate(Url.Text, UriKind.Absolute, out uri)) Navigate(uri);
+        }
+
+    private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
         
         private void GetList_Click(object sender, RoutedEventArgs e) { YoutubeEntry.Create(_youtubeUrl.Uri).GetEntries(DownloadList); }
         
@@ -80,7 +104,7 @@ namespace ms.video.downloader
         {
             if (list.Count == 0) return;
             var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
-            _lists.Add(list, mediaType);
+            Lists.Add(list, mediaType);
             MixpanelTrack("Download", new { _settings.Guid });
         }        
         
@@ -109,8 +133,8 @@ namespace ms.video.downloader
                 } catch {}
             });
         }
-        
-        private void Button_Click_1(object sender, RoutedEventArgs e)
+
+        private void UpdatePanes(object sender, RoutedEventArgs e)
         {
             DownloadStatusGrid.Visibility = (DownloadStatusGrid.Visibility != Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
             WebViewGrid.Visibility = (DownloadStatusGrid.Visibility != Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
@@ -158,5 +182,6 @@ namespace ms.video.downloader
         }
 
         #endregion
+
     }
 }

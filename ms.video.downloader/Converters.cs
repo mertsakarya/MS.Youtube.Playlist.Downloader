@@ -11,6 +11,7 @@ namespace ms.video.downloader
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var presenter = value as ContentPresenter;
+            if (presenter == null) return null;
             var feed = presenter.Content as Feed;
             return feed;
         }

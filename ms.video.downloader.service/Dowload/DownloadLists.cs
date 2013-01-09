@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Linq;
 
 namespace ms.video.downloader.service.Dowload
 {
@@ -11,7 +13,7 @@ namespace ms.video.downloader.service.Dowload
         {
             _settings = settings;
             _onStatusChanged = onStatusChanged;
-            _settings.FillDownloadLists(this);
+            if (_settings.FillDownloadLists(this) && Entries.Count > 0) StartDownload(); else Entries.Clear();
         }
 
         public Feed Add(IEnumerable entries, MediaType mediaType)
@@ -24,25 +26,26 @@ namespace ms.video.downloader.service.Dowload
         public DownloadList SoftAdd(IEnumerable entries, MediaType mediaType)
         {
             var downloadList = new DownloadList(mediaType, OnDownloadStatusChange);
-            foreach (YoutubeEntry member in entries)
-                if (member.Uri != null) {
-                    downloadList.Entries.Add(member.Clone());
-                }
-            if (downloadList.Entries.Count > 0) 
-                Entries.Add(downloadList);
+            foreach (var member in entries.Cast<YoutubeEntry>().Where(member => member.Uri != null)) downloadList.Entries.Add(member.Clone());
+            if (downloadList.Entries.Count > 0) Entries.Add(downloadList);
             return downloadList;
         }
 
-        public void StartDownload()
+        private void StartDownload()
         {
-            foreach (DownloadList downloadItems in Entries)
-                if (downloadItems.Entries.Count > 0) 
-                    downloadItems.Download(false);
+            foreach (var downloadItems in Entries.Cast<DownloadList>().Where(downloadItems => downloadItems.Entries.Count > 0)) downloadItems.Download(false);
         }
 
         private void OnDownloadStatusChange(Feed downloadList, Feed entry, DownloadState downloadState, double percentage)
         {
             if (Entries.Count <= 0 || _onStatusChanged == null) return;
+            if (downloadState == DownloadState.Deleted) {
+                foreach (var en in Entries)
+                    en.Delete();
+                Entries.Remove(downloadList);
+                _settings.SaveDownloadLists(this);
+                return;
+            }
             var finishedCount = 0;
             var average = 0.0;
             foreach (var en in Entries) {
@@ -65,7 +68,6 @@ namespace ms.video.downloader.service.Dowload
                     )) 
                 _onStatusChanged(downloadList, entry, downloadState, percentage);
             _settings.SaveDownloadLists(this);
-
         }
 
         private void UpdateStatus(Feed downloadList, Feed entry, DownloadState state, double percentage)
@@ -76,5 +78,6 @@ namespace ms.video.downloader.service.Dowload
         }
 
         public new string Title { get { return "TOTAL"; } }
+
     }
 }

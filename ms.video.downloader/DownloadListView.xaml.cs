@@ -58,10 +58,6 @@ namespace ms.video.downloader
 
         }
 
-        //private void StackPanel_Tapped_1(object sender, Windows.UI.Xaml.Input.TappedRoutedEventArgs e)
-        //{
-        //}
-
         private void DownloadListGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 

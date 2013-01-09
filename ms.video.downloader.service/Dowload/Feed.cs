@@ -12,6 +12,8 @@ namespace ms.video.downloader.service.Dowload
         private DownloadState _downloadState;
         private double _percentage;
         private ObservableCollection<Feed> _entries;
+        private ExecutionStatus _executionStatus;
+
 
         public Feed()
         {
@@ -22,6 +24,7 @@ namespace ms.video.downloader.service.Dowload
             Title = "";
             Description = "";
             ThumbnailUrl = "";
+            _executionStatus = ExecutionStatus.Normal;
         }
 
         public string Title
@@ -71,6 +74,17 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
+        public ExecutionStatus ExecutionStatus
+        {
+            get { return _executionStatus; }
+            set
+            {
+                if (value == _executionStatus) return;
+                _executionStatus = value;
+                OnPropertyChanged("ExecutionSTatus");
+            }
+        }
+
         [JsonIgnore]
         public double Percentage
         {
@@ -89,5 +103,21 @@ namespace ms.video.downloader.service.Dowload
         {
             PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        public virtual void Delete()
+        {
+            ExecutionStatus = ExecutionStatus.Deleted;
+        }
+
+        public virtual void Pause()
+        {
+            ExecutionStatus = ExecutionStatus.Pause;
+        }
+
+        public virtual void Continue()
+        {
+            ExecutionStatus = ExecutionStatus.Normal;
+        }
+
     }
 }

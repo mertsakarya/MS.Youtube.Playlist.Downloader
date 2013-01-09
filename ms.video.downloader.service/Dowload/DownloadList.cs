@@ -47,6 +47,14 @@ namespace ms.video.downloader.service.Dowload
             var finishedCount = 0;
             var downloadCount = 0;
             var average = 0.0;
+            if (downloadState == DownloadState.Deleted) {
+                var entry = feed as YoutubeEntry;
+                if (entry != null) {
+                    entry.OnEntryDownloadStatusChange = null;
+                    Entries.Remove(feed);
+                }
+                return;
+            }
             foreach (var en in Entries) {
                 if (en.DownloadState == DownloadState.Ready || en.DownloadState == DownloadState.Error)
                     finishedCount++;
@@ -83,10 +91,29 @@ namespace ms.video.downloader.service.Dowload
         {
             for (var i = 0; i < Entries.Count; i++) {
                 var entry = Entries[i] as YoutubeEntry;
-                if (entry == null || entry.DownloadState != DownloadState.Initialized) continue;
+                if (entry == null || entry.DownloadState != DownloadState.Initialized || entry.DownloadState == DownloadState.Paused || entry.DownloadState == DownloadState.Deleted) continue;
                 await entry.DownloadAsync(MediaType, _ignoreDownloaded);
                 break;
             }
         }
+
+        public override void Delete()
+        {
+            base.Delete();
+            UpdateStatus(DownloadState.Deleted, null, 0.0);
+        }
+
+        public override void Pause()
+        {
+            base.Pause();
+            UpdateStatus(DownloadState.Paused, null, 0.0);
+        }
+
+        public override void Continue()
+        {
+            base.Continue();
+            Download(false);
+        }
+
     }
 }

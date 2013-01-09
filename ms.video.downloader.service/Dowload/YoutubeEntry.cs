@@ -169,7 +169,7 @@ namespace ms.video.downloader.service.Dowload
             var fileExists = DownloadHelper.FileExists(VideoFolder, videoFile);
             if (!(ignore && fileExists)) {
                 if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, DownloadState, Percentage);
-                await DownloadHelper.DownloadToFileAsync(videoInfo.DownloadUri, VideoFolder, videoFile,
+                await DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, VideoFolder, videoFile,
                     (count, total) => UpdateStatus(DownloadState.DownloadProgressChanged, ((double)count / total) * ((MediaType == MediaType.Audio) ? 50 : 100)));
             }
             DownloadState = DownloadState.DownloadFinish;
@@ -230,6 +230,24 @@ namespace ms.video.downloader.service.Dowload
             if (uri != null) 
                 entry.Uri = uri;
             return entry;
+        }
+
+        public override void Delete()
+        {
+            base.Delete();
+            UpdateStatus(DownloadState.Deleted);
+        }
+
+        public override void Pause()
+        {
+            base.Pause();
+            UpdateStatus(DownloadState.Paused, Percentage);
+        }
+
+        public override void Continue()
+        {
+            base.Continue();
+            UpdateStatus(DownloadState.Initialized, 0.0);
         }
 
     }

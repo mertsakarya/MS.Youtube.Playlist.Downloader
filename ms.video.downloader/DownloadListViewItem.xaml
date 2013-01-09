@@ -4,10 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="90" d:DesignWidth="400">
-    <Grid HorizontalAlignment="Stretch" Height="90" VerticalAlignment="Top">
-        <Image Source="{Binding Path=ThumbnailUrl}"  HorizontalAlignment="Left" Height="90" VerticalAlignment="Top" Width="120"/>
-        <TextBlock Text="{Binding Path=Title}" Height="32" VerticalAlignment="Top" Margin="125,0,10,0"/>
-        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" HorizontalAlignment="Stretch" Foreground="CornflowerBlue" Margin="125,34,10,0" Height="32"/>
+             d:DesignHeight="30" d:DesignWidth="650">
+    <Grid x:Name="Item" HorizontalAlignment="Stretch" Height="30" VerticalAlignment="Top" Tag="{Binding}">
+        <Image Source="{Binding Path=ThumbnailUrl}"  HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="40"/>
+        <TextBlock Text="{Binding Path=Title}" ToolTip="{Binding Path=Title}" Height="30" VerticalAlignment="Top" TextTrimming="CharacterEllipsis" Margin="40,0,201,0"/>
+        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" Foreground="CornflowerBlue" Margin="404,3,106,0" Height="24"/>
+        <Button x:Name="Pause" Content="Pause" VerticalAlignment="Top" Margin="0,3,53,0" Height="24" HorizontalAlignment="Right" Width="50" Click="Pause_Click"/>
+        <Button Content="Delete" VerticalAlignment="Top" Margin="0,3,1,0" Height="24" HorizontalAlignment="Right" Width="50" Click="Delete_Click"/>
     </Grid>
 </UserControl>

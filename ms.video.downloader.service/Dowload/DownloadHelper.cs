@@ -136,7 +136,7 @@ namespace ms.video.downloader.service.Dowload
             return File.Exists(file.ToString());
         }
 
-        public static async Task DownloadToFileAsync(Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
+        public static async Task DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
         {
             var storageFile = GetFile(folder, fileName);
             using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
@@ -144,12 +144,13 @@ namespace ms.video.downloader.service.Dowload
                 //var properties = await storageFile.GetBasicPropertiesAsync();
                 var start = destinationStream.Length; // (long)properties.Size;
                 destinationStream.Position = destinationStream.Length;
-                await AddToFile(uri, destinationStream, start, start + BlockSize - 1, onYoutubeLoading);
+                await AddToFile(entry, uri, destinationStream, start, start + BlockSize - 1, onYoutubeLoading);
             }
         }
 
-        private static async Task AddToFile(Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading)
+        private static async Task AddToFile(YoutubeEntry entry, Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading)
         {
+            if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
             var response = await DownloadToStreamAsync(uri, start, stop);
             if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable) return;
             var range = GetRange(response);
@@ -159,9 +160,9 @@ namespace ms.video.downloader.service.Dowload
                 if (stream == null) return;
                 await stream.CopyToAsync(destinationStream);
                 await destinationStream.FlushAsync();
-                if (onYoutubeLoading != null) onYoutubeLoading(to, total);
+                if (onYoutubeLoading != null && entry.ExecutionStatus == ExecutionStatus.Normal) onYoutubeLoading(to, total);
                 if (total > to + 1)
-                    await AddToFile(uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading);
+                    await AddToFile(entry, uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading);
             }
         }
 
