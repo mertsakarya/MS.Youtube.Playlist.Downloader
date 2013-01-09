@@ -59,5 +59,18 @@ namespace ms.video.downloader.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt;html&gt;&lt;head&gt;&lt;title&gt;MS Video Downloader Tracking page&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;form action=&apos;https://www.paypal.com/cgi-bin/webscr&apos; method=&apos;post&apos; target=&apos;_blank&apos;&gt;
+        ///&lt;input type=&apos;hidden&apos; name=&apos;cmd&apos; value=&apos;_s-xclick&apos;&gt;
+        ///&lt;input type=&apos;hidden&apos; name=&apos;hosted_button_id&apos; value=&apos;C79LKUFBTF66N&apos;&gt;
+        ///&lt;input type=&apos;image&apos; src=&apos;https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif&apos; border=&apos;0&apos; name=&apos;submit&apos; alt=&apos;PayPal - The safer, easier way to pay online!&apos;&gt;
+        ///&lt;img alt=&apos;&apos; border=&apos;0&apos; src=&apos;https://www.paypalobjects.com/en_US/i/sc [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string TrackerHtml {
+            get {
+                return ResourceManager.GetString("TrackerHtml", resourceCulture);
+            }
+        }
     }
 }

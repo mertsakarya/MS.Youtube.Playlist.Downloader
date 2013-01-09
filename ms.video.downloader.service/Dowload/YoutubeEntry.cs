@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
 
 namespace ms.video.downloader.service.Dowload
@@ -16,21 +17,31 @@ namespace ms.video.downloader.service.Dowload
         private readonly MSYoutubeSettings _settings;
         private Uri _uri;
 
+        [JsonIgnore]
         public YoutubeEntry Parent { get; private set; }
+        [JsonIgnore]
         public string VideoExtension { get; set; }
         public string[] ThumbnailUrls { get; set; }
+        [JsonIgnore]
         public YoutubeUrl YoutubeUrl { get; protected set; }
+        [JsonIgnore]
         public StorageFolder BaseFolder { get; set; }
+        [JsonIgnore]
         public StorageFolder ProviderFolder { get; set; }
+        [JsonIgnore]
         public StorageFolder VideoFolder { get; set; }
+        [JsonIgnore]
         public StorageFolder DownloadFolder { get; set; }
+        [JsonIgnore]
         public MediaType MediaType { get; set; }
+        [JsonIgnore]
         public string ChannelName { get { return Parent == null ? "" : Parent.Title; } }
+        [JsonIgnore]
         public EntryDownloadStatusEventHandler OnEntryDownloadStatusChange;
         public Uri Uri
         {
             get { return _uri; }
-            set { _uri = value; YoutubeUrl = YoutubeUrl.Create(_uri); }
+            set { _uri = value; if (value != null) YoutubeUrl = YoutubeUrl.Create(_uri); }
         }
 
         private YoutubeEntry(YoutubeEntry parent = null)
@@ -45,7 +56,7 @@ namespace ms.video.downloader.service.Dowload
         #endregion
 
         #region GetEntries
-        public void GetEntries(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
+        public void GetEntries(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading = null)
         {
             if(YoutubeUrl.Type == VideoUrlType.Channel || YoutubeUrl.ChannelId != "" || YoutubeUrl.FeedId != "")
                 FillEntriesChannel(onEntriesReady, onYoutubeLoading);
@@ -215,7 +226,9 @@ namespace ms.video.downloader.service.Dowload
 
         public static YoutubeEntry Create(Uri uri, YoutubeEntry parent = null)
         {
-            var entry =  new YoutubeEntry(parent) { Uri = uri };
+            var entry = new YoutubeEntry(parent);
+            if (uri != null) 
+                entry.Uri = uri;
             return entry;
         }
 

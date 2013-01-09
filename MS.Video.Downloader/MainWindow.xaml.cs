@@ -1,123 +1,47 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
-using System.Windows.Threading;
+using Newtonsoft.Json;
 using ms.video.downloader.service;
 using ms.video.downloader.service.Dowload;
 
-namespace ms.video.downloader.win
+namespace ms.video.downloader
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private YoutubeUrl _youtubeUrl;
-        private YoutubeEntry _playlist;
-        private readonly Feed _lists;
-
+        private readonly DownloadLists _lists;
+        private readonly LocalService _settings;
+        
         public MainWindow()
         { 
             InitializeComponent();
-            _lists = new DownloadLists(OnDownloadStatusChange);
+            _settings = new LocalService();
+            _lists = new DownloadLists(_settings, OnDownloadStatusChange);
+            Loading(false);
         }
-
-        private void PrepareUrl(Uri uri)
-        {
-            List.ItemsSource = null;
-
-            _youtubeUrl = YoutubeUrl.Create(uri);
-            if (_youtubeUrl == null) {
-                Loading(false);  
-                return; 
-            }
-            switch (_youtubeUrl.Type) {
-                case VideoUrlType.User:
-                    GetItems(SelectionMode.Single);
-                    break;
-                case VideoUrlType.Channel:
-                    GetItems();
-                    break;
-                case VideoUrlType.Video:
-                    if (_youtubeUrl.ChannelId != "") {
-                        GetItems();
-                    } else
-                        Loading(false);
-                    break;
-                case VideoUrlType.Unknown:
-                    Loading(false);
-                    break;
-            }
-        }
-
-        private void GetItems(SelectionMode mode = SelectionMode.Multiple)
-        {
-            List.SelectionMode = mode;
-            _playlist = YoutubeEntry.Create(_youtubeUrl.Uri);
-            _playlist.GetEntries(OnEntriesReady, OnYoutubeLoading);
-        }
-
-        private void OnYoutubeLoading(long count, long total)
-        {
-            if (total <= 0) return;
-            LoadingProgressBar.Visibility = Visibility.Visible;
-            LoadingProgressBar.Value = ((double) count/total)*100;
-        }
-
+        
         private void Window_Loaded_1(object sender, RoutedEventArgs e)
         {
             DownloadStatusGrid.DataContext = _lists;
             DownloadStatusGrid.ItemsSource = _lists.Entries;
+            var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
+            var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
+            Paypal.NavigateToString(paypalHtml);
             Navigate(new Uri("http://www.youtube.com/"));
-            Count.Text = "";
         }
-
-        private void Browser_LoadCompleted(object sender, NavigationEventArgs e)
+        
+        private void Loading(bool show = true)
         {
-            Url.Text = e.Uri.ToString();
-            PrepareUrl(e.Uri);
-        }
-
-        private void OnEntriesReady(ObservableCollection<Feed> entries)
-        {
-            Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { 
-                if (entries.Count > 0) {
-                    List.ItemsSource = entries;
-                    Count.Text = String.Format("{0} ITEMS", entries.Count);
-                    Count.Visibility = Visibility.Visible;
-                }
-                else {
-                    Count.Visibility = Visibility.Collapsed;
-                }
-                Loading(false);
-            }));
-        }
-
-        private void Navigate(Uri uri)
-        {
-            Loading();
-            Browser.Navigate(uri);
-        }
-
-        private void Loading(bool value = true)
-        {
-            LoadingPane.Visibility = (value) ? Visibility.Visible : Visibility.Collapsed;
-            //LoadingImage.IsActive = value;
-            LoadingProgressBar.Visibility = Visibility.Collapsed;
-            InteractionPane.Visibility = (!value) ? Visibility.Visible : Visibility.Collapsed;
-            if (value) {
-                Count.Visibility = Visibility.Collapsed;
-                return;
-            }
             GetList.Visibility = Visibility.Collapsed;
             GetVideo.Visibility = Visibility.Collapsed;
             ConvertMp3.Visibility = Visibility.Collapsed;
+            if (!show) return;
             if (_youtubeUrl != null) {
                 switch (_youtubeUrl.Type) {
                     case VideoUrlType.Channel:
@@ -133,40 +57,39 @@ namespace ms.video.downloader.win
                 }
             }
         }
-
-        private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        
+        private void Browser_LoadCompleted(object sender, NavigationEventArgs e)
         {
-            if (_youtubeUrl.Type == VideoUrlType.User) {
-                var entry = List.SelectedItem as YoutubeEntry;
-                if (entry == null) return;
-                Navigate(entry.Uri);
-            }
-            else {
-                GetList.Content = (List.SelectedItems.Count > 0) ? "Download Selected" : "Download Playlist";
-            }
+            Url.Text = e.Uri.ToString();
+            MixpanelTrack("Navigated", new {Url=e.Uri.ToString(), _settings.Guid});
+            _youtubeUrl = YoutubeUrl.Create(e.Uri);
+            Loading();
         }
-
+        
+        private void Navigate(Uri uri) { Loading(false); Browser.Navigate(uri); }
+       
         private void GoBack_Click(object sender, RoutedEventArgs e) { if(Browser.CanGoBack) Browser.GoBack();  }
+        
         private void GoForward_Click(object sender, RoutedEventArgs e) { if(Browser.CanGoForward) Browser.GoForward();  } // { Browser.InvokeScript("eval", new[] { "history.go(1)" }); }
-
+        
         private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
-        private void GetList_Click(object sender, RoutedEventArgs e) { DownloadList(((List.SelectedItems.Count > 0) ? List.SelectedItems : List.Items)); }
-        private void DownloadList(IEnumerable list)
+        
+        private void GetList_Click(object sender, RoutedEventArgs e) { YoutubeEntry.Create(_youtubeUrl.Uri).GetEntries(DownloadList); }
+        
+        private void DownloadList(IList list)
         {
+            if (list.Count == 0) return;
             var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
-            var downloadLists = _lists as DownloadLists;
-            if(downloadLists != null)
-                downloadLists.Add(list, mediaType, false);
-            //MixpanelTrack("Download List", new { downloadItems.Count });
-        }
+            _lists.Add(list, mediaType);
+            MixpanelTrack("Download", new { _settings.Guid });
+        }        
         
         private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
-            Dispatcher.Invoke(new Action(() => {
+            Dispatcher.Invoke(() => {
                 try {
                     switch (downloadState) {
                         case DownloadState.AllStart:
-                            Log.Text = "START";
                             ProgressBar.Value = 0;
                             break;
                         case DownloadState.AllFinished:
@@ -177,23 +100,30 @@ namespace ms.video.downloader.win
                         case DownloadState.DownloadProgressChanged:
                             ProgressBar.Value = percentage;
                             break;
+                        case DownloadState.TitleChanged:
+                            MixpanelTrack("Download", new { entry.Title, _settings.Guid });
+                            break;
                     }
                     if (entry != null)
                         Log.Text = entry.ToString();
                 } catch {}
-            }));
+            });
         }
-
+        
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            DownloadStatusGrid.Visibility = (DownloadStatusGrid.Visibility == Visibility.Collapsed)
-                                            ? Visibility.Visible
-                                            : Visibility.Collapsed;
-            WebViewGrid.Visibility = (DownloadStatusGrid.Visibility == Visibility.Collapsed)
-                                            ? Visibility.Visible
-                                            : Visibility.Collapsed;
-
+            DownloadStatusGrid.Visibility = (DownloadStatusGrid.Visibility != Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
+            WebViewGrid.Visibility = (DownloadStatusGrid.Visibility != Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
         }
+        
+        public void MixpanelTrack(string action, object obj = null)
+        {
+            var objText = (obj == null) ? "" : ", " + JsonConvert.SerializeObject(obj);
+            var cmd = "mixpanel.track('" + action + "'" + objText + ");";
+            Paypal.InvokeScript("trackEval", cmd);
+        }
+        
+        #region Hide script errors
 
         private void Browser_Navigated(object sender, NavigationEventArgs e)
         {
@@ -206,13 +136,16 @@ namespace ms.video.downloader.win
 
             var sp = browser.Document as IOleServiceProvider;
             if (sp == null) return;
-            var IID_IWebBrowserApp = new Guid("0002DF05-0000-0000-C000-000000000046");
-            var IID_IWebBrowser2 = new Guid("D30C1661-CDAF-11d0-8A3E-00C04FC9E26E");
+            var iidIWebBrowserApp = new Guid("0002DF05-0000-0000-C000-000000000046");
+            var iidIWebBrowser2 = new Guid("D30C1661-CDAF-11d0-8A3E-00C04FC9E26E");
 
             object webBrowser;
-            sp.QueryService(ref IID_IWebBrowserApp, ref IID_IWebBrowser2, out webBrowser);
+            sp.QueryService(ref iidIWebBrowserApp, ref iidIWebBrowser2, out webBrowser);
             if (webBrowser != null) {
-                webBrowser.GetType().InvokeMember("Silent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.PutDispProperty, null, webBrowser, new object[] { silent });
+                webBrowser.GetType()
+                          .InvokeMember("Silent",
+                                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.PutDispProperty, null,
+                                        webBrowser, new object[] {silent});
             }
         }
 
@@ -220,7 +153,10 @@ namespace ms.video.downloader.win
         private interface IOleServiceProvider
         {
             [PreserveSig]
-            int QueryService([In] ref Guid guidService, [In] ref Guid riid, [MarshalAs(UnmanagedType.IDispatch)] out object ppvObject);
+            int QueryService([In] ref Guid guidService, [In] ref Guid riid,
+                             [MarshalAs(UnmanagedType.IDispatch)] out object ppvObject);
         }
+
+        #endregion
     }
 }

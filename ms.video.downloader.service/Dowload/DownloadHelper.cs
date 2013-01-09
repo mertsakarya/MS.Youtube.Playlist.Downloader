@@ -140,6 +140,7 @@ namespace ms.video.downloader.service.Dowload
         {
             var storageFile = GetFile(folder, fileName);
             using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
+                if (destinationStream == null) return;
                 //var properties = await storageFile.GetBasicPropertiesAsync();
                 var start = destinationStream.Length; // (long)properties.Size;
                 destinationStream.Position = destinationStream.Length;

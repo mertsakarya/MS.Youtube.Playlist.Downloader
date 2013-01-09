@@ -4,22 +4,40 @@ namespace ms.video.downloader.service.Dowload
 {
     public class DownloadLists : Feed
     {
+        private readonly LocalService _settings;
         private readonly ListDownloadStatusEventHandler _onStatusChanged;
 
-        public DownloadLists(ListDownloadStatusEventHandler onStatusChanged)
+        public DownloadLists(LocalService settings, ListDownloadStatusEventHandler onStatusChanged)
         {
+            _settings = settings;
             _onStatusChanged = onStatusChanged;
+            _settings.FillDownloadLists(this);
         }
 
-        public Feed Add(IEnumerable entries, MediaType mediaType, bool ignoreDownloaded)
+        public Feed Add(IEnumerable entries, MediaType mediaType)
         {
-            var downloadItems = new DownloadList(mediaType, OnDownloadStatusChange);
+            var downloadList = SoftAdd(entries, mediaType);
+            downloadList.Download(false);
+            return downloadList;
+        }
+
+        public DownloadList SoftAdd(IEnumerable entries, MediaType mediaType)
+        {
+            var downloadList = new DownloadList(mediaType, OnDownloadStatusChange);
             foreach (YoutubeEntry member in entries)
-                if (member.Uri != null)
-                    downloadItems.Entries.Add(member.Clone());
-            downloadItems.Download(ignoreDownloaded);
-            Entries.Add(downloadItems);
-            return downloadItems;
+                if (member.Uri != null) {
+                    downloadList.Entries.Add(member.Clone());
+                }
+            if (downloadList.Entries.Count > 0) 
+                Entries.Add(downloadList);
+            return downloadList;
+        }
+
+        public void StartDownload()
+        {
+            foreach (DownloadList downloadItems in Entries)
+                if (downloadItems.Entries.Count > 0) 
+                    downloadItems.Download(false);
         }
 
         private void OnDownloadStatusChange(Feed downloadList, Feed entry, DownloadState downloadState, double percentage)
@@ -46,6 +64,8 @@ namespace ms.video.downloader.service.Dowload
                         downloadState == DownloadState.DownloadProgressChanged
                     )) 
                 _onStatusChanged(downloadList, entry, downloadState, percentage);
+            _settings.SaveDownloadLists(this);
+
         }
 
         private void UpdateStatus(Feed downloadList, Feed entry, DownloadState state, double percentage)

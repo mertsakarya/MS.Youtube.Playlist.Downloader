@@ -42,10 +42,14 @@
     <AssemblyOriginatorKeyFile>MS.Video.Downloader.Key.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="policy.2.0.taglib-sharp">
       <HintPath>..\packages\taglib.2.1.0.0\lib\policy.2.0.taglib-sharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Deployment" />
     <Reference Include="System.Management" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
@@ -55,6 +59,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApplicationConfiguration.cs" />
     <Compile Include="Dowload\AudioConverter.cs" />
     <Compile Include="Dowload\DownloadHelper.cs" />
     <Compile Include="Dowload\DownloadList.cs" />
@@ -66,6 +71,7 @@
     <Compile Include="Dowload\YoutubeEntry.cs" />
     <Compile Include="Dowload\YoutubeUrl.cs" />
     <Compile Include="Enumerations.cs" />
+    <Compile Include="LocalService.cs" />
     <Compile Include="MSYoutube\MSYoutubeEntry.cs" />
     <Compile Include="MSYoutube\MSYoutubeRequest.cs" />
     <Compile Include="MSYoutube\MSYoutubeSettings.cs" />

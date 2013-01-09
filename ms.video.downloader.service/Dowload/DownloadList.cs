@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace ms.video.downloader.service.Dowload
 {
@@ -10,6 +11,7 @@ namespace ms.video.downloader.service.Dowload
         private bool _ignoreDownloaded;
         private readonly int _poolSize;
 
+        [JsonIgnore]
         public ListDownloadStatusEventHandler OnListDownloadStatusChange;
 
         public DownloadList(MediaType mediaType, ListDownloadStatusEventHandler onDownloadStatusChange = null, int poolSize = 3)

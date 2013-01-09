@@ -46,7 +46,7 @@
     
     mimetype: application/x-microsoft.net.object.binary.base64
     value   : The object must be serialized with 
-            : System.Serialization.Formatters.Binary.BinaryFormatter
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
     
     mimetype: application/x-microsoft.net.object.soap.base64
@@ -60,6 +60,7 @@
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
       <xsd:complexType>
         <xsd:choice maxOccurs="unbounded">
@@ -68,9 +69,10 @@
               <xsd:sequence>
                 <xsd:element name="value" type="xsd:string" minOccurs="0" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="name" use="required" type="xsd:string" />
               <xsd:attribute name="type" type="xsd:string" />
               <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="assembly">
@@ -85,9 +87,10 @@
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
                 <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
               <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
               <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="resheader">
@@ -109,9 +112,39 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="TrackerHtml" xml:space="preserve">
+    <value>&lt;html&gt;&lt;head&gt;&lt;title&gt;MS Video Downloader Tracking page&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;form action='https://www.paypal.com/cgi-bin/webscr' method='post' target='_blank'&gt;
+&lt;input type='hidden' name='cmd' value='_s-xclick'&gt;
+&lt;input type='hidden' name='hosted_button_id' value='C79LKUFBTF66N'&gt;
+&lt;input type='image' src='https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif' border='0' name='submit' alt='PayPal - The safer, easier way to pay online!'&gt;
+&lt;img alt='' border='0' src='https://www.paypalobjects.com/en_US/i/scr/pixel.gif' width='1' height='1'&gt;
+&lt;/form&gt;&lt;script type='text/javascript'&gt;
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-36629489-1']);
+_gaq.push(['_setDomainName', 'mertsakarya.com']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+&lt;/script&gt;
+&lt;!-- start Mixpanel --&gt;&lt;script type='text/javascript'&gt;(function(c,a){window.mixpanel=a;var b,d,h,e;b=c.createElement('script');b.type='text/javascript';b.async=!0;b.src=('https:'===c.location.protocol?'https:':'http:')+'//cdn.mxpnl.com/libs/mixpanel-2.1.min.js';d=c.getElementsByTagName('script')[0];d.parentNode.insertBefore(b,d);a._i=[];a.init=function(b,c,f){function d(a,b){var c=b.split('.');2==c.length&amp;&amp;(a=a[c[0]],b=c[1]);a[b]=function(){a.push([b].concat(Array.prototype.slice.call(arguments,0)))}}var g=a;'undefined'!==typeof f?
+g=a[f]=[]:f='mixpanel';g.people=g.people||[];h='disable track track_pageview track_links track_forms register register_once unregister identify name_tag set_config people.identify people.set people.increment'.split(' ');for(e=0;e&lt;h.length;e++)d(g,h[e]);a._i.push([b,c,f])};a.__SV=1.1})(document,window.mixpanel||[]);
+mixpanel.init('57dbc5e73fac491d3412da1aa74b0295');&lt;/script&gt;&lt;!-- end Mixpanel --&gt;
+&lt;script type='text/javascript'&gt;
+function track(prm) {mixpanel.track(prm);}         
+function trackEval(txt) {eval(txt);}
+mixpanel.identify('|0|');
+mixpanel.people.identify('|0|');
+mixpanel.track('App Start', {Version:'|2|'});
+|1|
+&lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;</value>
+  </data>
 </root>

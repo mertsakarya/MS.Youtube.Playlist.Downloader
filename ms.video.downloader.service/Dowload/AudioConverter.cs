@@ -25,6 +25,7 @@ namespace ms.video.downloader.service.Dowload
 
         public void ConvertToMp3(bool ignoreIfFileExists = false)
         {
+
             if (_youtubeEntry.DownloadState != DownloadState.DownloadFinish) return;
             var title = DownloadHelper.GetLegalPath(_youtubeEntry.Title);
             var audioFileName = title + ".mp3";
@@ -35,10 +36,15 @@ namespace ms.video.downloader.service.Dowload
             if (ignoreIfFileExists && fileExists) {
                 if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Ready, 100.0);
             } else {
-                if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
-                var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
-                var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
-                TranscodeFile(videoFile, audioFile);
+                try {
+                    if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
+                    var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
+                    var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
+                    TranscodeFile(videoFile, audioFile);
+                }
+                catch  {
+                    if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
+                }
             }
         }
 
@@ -60,8 +66,12 @@ namespace ms.video.downloader.service.Dowload
             process.Exited += (sender, args) => {
                 DownloadState state;
                 if (process.ExitCode == 0) {
-                    Tag(audioFile.ToString());
-                    state = DownloadState.Ready;
+                    try {
+                        Tag(audioFile.ToString());
+                        state = DownloadState.Ready;
+                    } catch {
+                        state = DownloadState.Error;
+                    }
                 } else state = DownloadState.Error;
                 if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
             };

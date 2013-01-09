@@ -34,7 +34,11 @@ namespace ms.video.downloader.service.Dowload
         public void DeleteAsync() { File.Delete(ToString()); }
         public Stream OpenStreamForWriteAsync()
         {
-            return File.OpenWrite(ToString());
+            try {
+                return File.OpenWrite(ToString());
+            } catch(IOException) { //File is opened/locked by another process
+                return null;
+            }
         }
     }
 

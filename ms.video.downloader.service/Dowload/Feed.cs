@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Newtonsoft.Json;
 
 namespace ms.video.downloader.service.Dowload
 {
@@ -58,6 +59,7 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
+        [JsonIgnore]
         public DownloadState DownloadState
         {
             get { return _downloadState; }
@@ -69,6 +71,7 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
+        [JsonIgnore]
         public double Percentage
         {
             get { return _percentage; }
