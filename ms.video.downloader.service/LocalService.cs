@@ -105,13 +105,13 @@ namespace ms.video.downloader.service
                         var youtubeListEntry =
                             YoutubeEntry.Create(Uri.TryCreate(itemList.Url, UriKind.Absolute, out uri) ? uri : null);
                         youtubeListEntry.Title = itemList.Title;
-                        youtubeListEntry.ExecutionStatus = itemList.ExecutionStatus;
+                        SetExecutionStatus(youtubeListEntry, itemList);
                         youtubeListEntry.ThumbnailUrl = itemList.ThumbnailUrl;
                         foreach (var item in itemList.List) {
                             var youtubeEntry = YoutubeEntry.Create(new Uri(item.Url), youtubeListEntry);
                             youtubeEntry.ThumbnailUrl = item.ThumbnailUrl;
                             youtubeEntry.Title = item.Title;
-                            youtubeEntry.ExecutionStatus = item.ExecutionStatus;
+                            SetExecutionStatus(youtubeEntry, item);
                             youtubeEntries.Add(youtubeEntry);
                         }
                         if (youtubeEntries.Count > 0)
@@ -123,6 +123,12 @@ namespace ms.video.downloader.service
             catch {
                 return false;
             }
+        }
+
+        private static void SetExecutionStatus(Feed feed, DownloadEntry entry)
+        {
+            feed.ExecutionStatus = entry.ExecutionStatus;
+            if (feed.ExecutionStatus==  ExecutionStatus.Deleted) feed.DownloadState = DownloadState.Deleted;
         }
 
         private class DownloadEntry

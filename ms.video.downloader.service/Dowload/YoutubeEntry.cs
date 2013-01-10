@@ -144,6 +144,7 @@ namespace ms.video.downloader.service.Dowload
 
         public async Task DownloadAsync(MediaType mediaType, bool ignore)
         {
+            if (ExecutionStatus == ExecutionStatus.Deleted) { Delete(); return; }
             UpdateStatus(DownloadState.DownloadStart, 0.0);
             MediaType = mediaType;
             BaseFolder = KnownFolders.VideosLibrary;
@@ -214,8 +215,10 @@ namespace ms.video.downloader.service.Dowload
                 ThumbnailUrl = ThumbnailUrl,
                 Uri = Uri,
                 VideoExtension = VideoExtension,
-                VideoFolder = VideoFolder
+                VideoFolder = VideoFolder,
+                ExecutionStatus = ExecutionStatus
             };
+            if (entry.ExecutionStatus == ExecutionStatus.Deleted) entry.DownloadState = DownloadState.Deleted;
             if (ThumbnailUrls != null && ThumbnailUrls.Length > 0) {
                 entry.ThumbnailUrls = new string[ThumbnailUrls.Length];
                 for (var i = 0; i < ThumbnailUrls.Length; i++)
@@ -237,18 +240,5 @@ namespace ms.video.downloader.service.Dowload
             base.Delete();
             UpdateStatus(DownloadState.Deleted);
         }
-
-        public override void Pause()
-        {
-            base.Pause();
-            UpdateStatus(DownloadState.Paused, Percentage);
-        }
-
-        public override void Continue()
-        {
-            base.Continue();
-            UpdateStatus(DownloadState.Initialized, 0.0);
-        }
-
     }
 }

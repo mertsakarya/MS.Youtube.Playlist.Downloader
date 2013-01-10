@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 
 namespace ms.video.downloader.service.Dowload
@@ -40,8 +39,8 @@ namespace ms.video.downloader.service.Dowload
         {
             if (Entries.Count <= 0 || _onStatusChanged == null) return;
             if (downloadState == DownloadState.Deleted) {
-                Entries.Remove(downloadList);
                 _settings.SaveDownloadLists(this);
+                UpdateStatus(downloadList, entry, DownloadState.AllFinished, 100.0);
                 return;
             }
             var finishedCount = 0;

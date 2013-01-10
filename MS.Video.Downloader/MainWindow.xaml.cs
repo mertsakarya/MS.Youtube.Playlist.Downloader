@@ -110,28 +110,32 @@ namespace ms.video.downloader
         
         private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
-            Dispatcher.Invoke(() => {
-                try {
-                    switch (downloadState) {
-                        case DownloadState.AllStart:
-                            ProgressBar.Value = 0;
-                            break;
-                        case DownloadState.AllFinished:
-                            Log.Text = "DONE!";
-                            ProgressBar.Value = 0;
-                            downloadItems.Entries.Clear();
-                            return;
-                        case DownloadState.DownloadProgressChanged:
-                            ProgressBar.Value = percentage;
-                            break;
-                        case DownloadState.TitleChanged:
-                            MixpanelTrack("Download", new { entry.Title, _settings.Guid });
-                            break;
+            try {
+                Dispatcher.Invoke(() => {
+                    try {
+                        switch (downloadState) {
+                            case DownloadState.AllStart:
+                                ProgressBar.Value = 0;
+                                break;
+                            case DownloadState.AllFinished:
+                                Log.Text = "DONE!";
+                                ProgressBar.Value = 0;
+                                downloadItems.Entries.Clear();
+                                return;
+                            case DownloadState.DownloadProgressChanged:
+                                ProgressBar.Value = percentage;
+                                break;
+                            case DownloadState.TitleChanged:
+                                MixpanelTrack("Download", new {entry.Title, _settings.Guid});
+                                break;
+                        }
+                        if (entry != null)
+                            Log.Text = entry.ToString();
                     }
-                    if (entry != null)
-                        Log.Text = entry.ToString();
-                } catch {}
-            });
+                    catch {}
+                });
+            }
+            catch {}
         }
 
         private void UpdatePanes(object sender, RoutedEventArgs e)

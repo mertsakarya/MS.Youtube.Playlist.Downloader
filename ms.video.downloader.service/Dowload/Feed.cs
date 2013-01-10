@@ -81,7 +81,7 @@ namespace ms.video.downloader.service.Dowload
             {
                 if (value == _executionStatus) return;
                 _executionStatus = value;
-                OnPropertyChanged("ExecutionSTatus");
+                OnPropertyChanged("ExecutionStatus");
             }
         }
 
@@ -107,16 +107,6 @@ namespace ms.video.downloader.service.Dowload
         public virtual void Delete()
         {
             ExecutionStatus = ExecutionStatus.Deleted;
-        }
-
-        public virtual void Pause()
-        {
-            ExecutionStatus = ExecutionStatus.Pause;
-        }
-
-        public virtual void Continue()
-        {
-            ExecutionStatus = ExecutionStatus.Normal;
         }
 
     }

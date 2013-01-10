@@ -138,6 +138,7 @@ namespace ms.video.downloader.service.Dowload
 
         public static async Task DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
         {
+            if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
             var storageFile = GetFile(folder, fileName);
             using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
                 if (destinationStream == null) return;

@@ -6,6 +6,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <local:DatabindingEntryConverter x:Key="EntryConverter" />
+            <local:DatabindingPauseButtonContentConverter x:Key="PauseContentConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

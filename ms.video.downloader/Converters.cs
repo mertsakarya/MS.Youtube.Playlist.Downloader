@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Windows.Controls;
 using System.Windows.Data;
+using ms.video.downloader.service;
 using ms.video.downloader.service.Dowload;
 
 namespace ms.video.downloader
@@ -14,6 +15,21 @@ namespace ms.video.downloader
             if (presenter == null) return null;
             var feed = presenter.Content as Feed;
             return feed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value;
+        }
+    }
+
+    public class DatabindingPauseButtonContentConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            //var executionStatus = value is ExecutionStatus ? (ExecutionStatus) value : ExecutionStatus.Normal;
+            //return executionStatus == ExecutionStatus.Paused ? "Continue" : "Pause";
+            return value;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
