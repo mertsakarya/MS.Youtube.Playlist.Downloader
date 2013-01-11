@@ -6,15 +6,15 @@
         <Grid Margin="1,1,1,1" >
             <Grid x:Name="WebViewGrid" Margin="0,0,0,25" >
                 <Grid  VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="32">
-                    <Button x:Name="GoBack" Content="&lt;" HorizontalAlignment="Left" Height="32" Margin="0,0,0,0" VerticalAlignment="Top" Click="GoBack_Click" Width="32" />
-                    <Button x:Name="GoForward" Content="&gt;" HorizontalAlignment="Left" Height="32" Margin="32,0,0,0"  VerticalAlignment="Top" Click="GoForward_Click" Width="32" />
-                    <TextBox x:Name="Url" Text="http://www.youtube.com/" Margin="64,0,441,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" KeyUp="Url_KeyUp" />
-                    <StackPanel Orientation="Horizontal" Height="32" VerticalAlignment="Bottom" Margin="0,0,110,0" HorizontalAlignment="Right" Width="326">
+                    <Button x:Name="GoBack" Content="&lt;" HorizontalAlignment="Left" Height="32" Margin="0,0,0,0" VerticalAlignment="Top" Click="GoBack_Click" Width="32" Grid.RowSpan="2" />
+                    <Button x:Name="GoForward" Content="&gt;" HorizontalAlignment="Left" Height="32" Margin="32,0,0,0"  VerticalAlignment="Top" Click="GoForward_Click" Width="32" Grid.RowSpan="2" />
+                    <TextBox x:Name="Url" Text="http://www.youtube.com/" Margin="64,0,441,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" KeyUp="Url_KeyUp" Grid.RowSpan="2" />
+                    <StackPanel Orientation="Horizontal" Height="32" VerticalAlignment="Bottom" Margin="0,0,79,0" HorizontalAlignment="Right" Width="357" >
                         <CheckBox x:Name="ConvertMp3" Content="Convert to MP3 " HorizontalAlignment="Left" Height="18" VerticalAlignment="Center" IsChecked="True" />
                         <Button x:Name="GetVideo" Content=" Download Video " HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Click="GetVideo_Click"/>
                         <Button x:Name="GetList" Content=" Download Playlist " HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Click="GetList_Click"  />
                     </StackPanel>
-                    <WebBrowser x:Name="Paypal" Margin="0,-12,-38,0" HorizontalAlignment="Right" Width="148" Height="44" VerticalAlignment="Bottom"/>
+                    <WebBrowser x:Name="Paypal" Margin="0,-12,-56,0" HorizontalAlignment="Right" Width="148" Height="44" VerticalAlignment="Bottom" Grid.RowSpan="2"/>
                 </Grid>
                 <WebBrowser x:Name="Browser" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,32,0,0" LoadCompleted="Browser_LoadCompleted" Navigated="Browser_Navigated"/>
             </Grid>

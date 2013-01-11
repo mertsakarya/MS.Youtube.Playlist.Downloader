@@ -237,6 +237,16 @@ namespace ms.video.downloader.service.Dowload
 
         public override void Delete()
         {
+            if (DownloadState == DownloadState.Error || DownloadState == DownloadState.Ready) return;
+            try {
+                var title = DownloadHelper.GetLegalPath(Title);
+                var videoFile = title + VideoExtension;
+                if (DownloadHelper.FileExists(VideoFolder, videoFile)) DownloadHelper.GetFile(VideoFolder, videoFile).DeleteAsync();
+                if (MediaType == MediaType.Audio) {
+                    var audioFile = title + ".mp3";
+                    if (DownloadHelper.FileExists(DownloadFolder, audioFile)) DownloadHelper.GetFile(DownloadFolder, audioFile).DeleteAsync();
+                }
+            } catch { }
             base.Delete();
             UpdateStatus(DownloadState.Deleted);
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using System.Xml;
 using TagLib;
 using File = TagLib.File;
@@ -40,7 +41,7 @@ namespace ms.video.downloader.service.Dowload
                     if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
                     var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
                     var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
-                    TranscodeFile(videoFile, audioFile);
+                    Task.Factory.StartNew(() => TranscodeFile(videoFile, audioFile));
                 }
                 catch  {
                     if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
@@ -58,10 +59,93 @@ namespace ms.video.downloader.service.Dowload
                     FileName = _applicationPath + "\\Executables\\ffmpeg.exe",
                     Arguments = arguments,
                     CreateNoWindow = true,
-                    RedirectStandardError = false,
-                    RedirectStandardOutput = false,
-                    UseShellExecute = false                    
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
                 }
+            };
+            if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.ConvertAudioStart, 50);
+
+            process.Start();
+            using (var d = process.StandardError) {
+                var duration = new TimeSpan();
+                TimeSpan current;
+                do {
+                    var s = d.ReadLine() ?? "";
+                    Debug.WriteLine(s);
+                    if (s.Contains("Duration: ")) {
+                        duration = ParseDuration("Duration: ", ',', s);
+                    }
+                    else {
+                        if (s.Contains(" time=")) {
+                            current = ParseDuration(" time=", ' ', s);
+                            var percentage = (current.TotalMilliseconds / duration.TotalMilliseconds) * 50;
+                            if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.DownloadProgressChanged, 50 + percentage );
+                            //string currents = functions.ExtractTime(s);
+                            //current = functions.CurrentStringToSeconds(currents);
+                            //synchCurrent(current.ToString());
+                            //synchTextOutput(s);
+                        }
+                    }
+                } while (!d.EndOfStream);
+            }
+            process.WaitForExit();
+            DownloadState state;
+            if (process.ExitCode == 0) {
+                try {
+                    Tag(audioFile.ToString());
+                    state = DownloadState.Ready;
+                } catch {
+                    state = DownloadState.Error;
+                }
+            } else state = DownloadState.Error;
+            if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
+            process.Close();
+        }
+
+        private TimeSpan ParseDuration(string start, char end, string s)
+        {
+            //  Duration: 00:03:43.84, start: 0.000000, bitrate: 716 kb/s
+            //size=     244kB time=00:00:15.57 bitrate= 128.4kbits/s    
+
+            if (s == null) return new TimeSpan(0);
+            var i = s.IndexOf(start, StringComparison.Ordinal);
+            if (i < 0) return new TimeSpan(0);;
+            i += start.Length;
+            var j = s.IndexOf(end, i);
+            j = j - i;
+            var timespan = s.Substring(i, j);
+            var ts = TimeSpan.Parse(timespan);
+            return ts;
+        }
+
+        #region Async Transcode
+
+        protected void _TranscodeFile(StorageFile videoFile, StorageFile audioFile)
+        {
+            var arguments = String.Format("-i \"{0}\" -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, audioFile);
+            var process = new Process {
+                EnableRaisingEvents = true,
+                StartInfo = {
+                    FileName = _applicationPath + "\\Executables\\ffmpeg.exe",
+                    Arguments = arguments,
+                    CreateNoWindow = true,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                }
+            };
+            process.OutputDataReceived += (sender, args) => {
+                var s = sender.ToString();
+                var a = args.ToString();
+                var state = (s + a == "Mert") ? DownloadState.Deleted : DownloadState.ConvertAudioStart;
+                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
+            };
+            process.ErrorDataReceived += (sender, args) => {
+                var s = sender.ToString();
+                var a = args.ToString();
+                var state = (s + a == "Mert") ? DownloadState.Deleted : DownloadState.ConvertAudioStart;
+                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
             };
             process.Exited += (sender, args) => {
                 DownloadState state;
@@ -69,15 +153,18 @@ namespace ms.video.downloader.service.Dowload
                     try {
                         Tag(audioFile.ToString());
                         state = DownloadState.Ready;
-                    } catch {
+                    }
+                    catch {
                         state = DownloadState.Error;
                     }
-                } else state = DownloadState.Error;
+                }
+                else state = DownloadState.Error;
                 if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
             };
             process.Start();
         }
 
+        #endregion
 
         #region TagLib
 

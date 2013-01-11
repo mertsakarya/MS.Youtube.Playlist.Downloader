@@ -8,7 +8,7 @@
     <Grid x:Name="Item" HorizontalAlignment="Stretch" Height="30" VerticalAlignment="Top" Tag="{Binding}">
         <Image Source="{Binding Path=ThumbnailUrl}"  HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="40"/>
         <TextBlock Text="{Binding Path=Title}" ToolTip="{Binding Path=Title}" Height="30" VerticalAlignment="Top" TextTrimming="CharacterEllipsis" Margin="40,0,201,0"/>
-        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" Foreground="CornflowerBlue" Margin="404,3,56,0" Height="24"/>
+        <ProgressBar Value="{Binding Path=Percentage}" VerticalAlignment="Top" Foreground="{Binding Path=DownloadState, Converter={StaticResource ProgressBarColorConverter}}" Margin="404,3,56,0" Height="24"/>
         <Button Content="Delete" VerticalAlignment="Top" Margin="0,3,1,0" Height="24" HorizontalAlignment="Right" Width="50" Click="Delete_Click"/>
     </Grid>
 </UserControl>

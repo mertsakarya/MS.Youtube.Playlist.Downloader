@@ -32,13 +32,8 @@ namespace ms.video.downloader
         {
             DownloadStatusGrid.DataContext = Lists;
             DownloadStatusGrid.ItemsSource = Lists.Entries;
-            var firstTimeString = (_settings.FirstTime
-                                       ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});"
-                                       : "");
-            var paypalHtml =
-                Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString())
-                          .Replace("|1|", firstTimeString)
-                          .Replace("|2|", _settings.Version);
+            var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
+            var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
             Paypal.NavigateToString(paypalHtml);
             Navigate(new Uri("http://www.youtube.com/"));
         }
@@ -109,31 +104,28 @@ namespace ms.video.downloader
         }        
         
         private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
+        { try { Dispatcher.Invoke(() => UpdateStatus(downloadItems, entry, downloadState, percentage)); } catch {} }
+
+        private void UpdateStatus(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
             try {
-                Dispatcher.Invoke(() => {
-                    try {
-                        switch (downloadState) {
-                            case DownloadState.AllStart:
-                                ProgressBar.Value = 0;
-                                break;
-                            case DownloadState.AllFinished:
-                                Log.Text = "DONE!";
-                                ProgressBar.Value = 0;
-                                downloadItems.Entries.Clear();
-                                return;
-                            case DownloadState.DownloadProgressChanged:
-                                ProgressBar.Value = percentage;
-                                break;
-                            case DownloadState.TitleChanged:
-                                MixpanelTrack("Download", new {entry.Title, _settings.Guid});
-                                break;
-                        }
-                        if (entry != null)
-                            Log.Text = entry.ToString();
-                    }
-                    catch {}
-                });
+                switch (downloadState) {
+                    case DownloadState.AllStart:
+                        ProgressBar.Value = 0;
+                        break;
+                    case DownloadState.AllFinished:
+                        Log.Text = "DONE!";
+                        ProgressBar.Value = 0;
+                        downloadItems.Entries.Clear();
+                        return;
+                    case DownloadState.DownloadProgressChanged:
+                        ProgressBar.Value = percentage;
+                        break;
+                    case DownloadState.TitleChanged:
+                        MixpanelTrack("Download", new {entry.Title, _settings.Guid});
+                        break;
+                }
+                Log.Text = (entry != null) ? entry.ToString() : "";
             }
             catch {}
         }

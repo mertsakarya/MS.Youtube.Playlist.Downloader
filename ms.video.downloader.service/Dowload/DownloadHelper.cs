@@ -40,11 +40,14 @@ namespace ms.video.downloader.service.Dowload
         {
             var t = HttpUtility.ParseQueryString(source); 
             var videoTitle = t.Get("title");
-            var splitByUrls = t.Get("url_encoded_fmt_stream_map").Split(',');
+            var splitByUrl = t.Get("url_encoded_fmt_stream_map");
+            if(String.IsNullOrWhiteSpace(splitByUrl)) return new List<VideoInfo>();
+            var splitByUrls = splitByUrl.Split(',');
             var videoInfos = new List<VideoInfo>();
             foreach (var s in splitByUrls) {
                 var queries = HttpUtility.ParseQueryString(s);
                 var url = queries.Get("url");
+                if(url == null) continue;
                 var decoder = HttpUtility.ParseQueryString(url.Substring(url.IndexOf('?')));
                 byte formatCode;
                 if (!Byte.TryParse(decoder.Get("itag"), out formatCode)) continue;

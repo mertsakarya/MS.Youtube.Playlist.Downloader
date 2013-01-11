@@ -7,6 +7,7 @@
         <ResourceDictionary>
             <local:DatabindingEntryConverter x:Key="EntryConverter" />
             <local:DatabindingPauseButtonContentConverter x:Key="PauseContentConverter" />
+            <local:DatabindingProgressBarColorConverter x:Key="ProgressBarColorConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
