@@ -81,10 +81,6 @@ namespace ms.video.downloader.service.Dowload
                             current = ParseDuration(" time=", ' ', s);
                             var percentage = (current.TotalMilliseconds / duration.TotalMilliseconds) * 50;
                             if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.DownloadProgressChanged, 50 + percentage );
-                            //string currents = functions.ExtractTime(s);
-                            //current = functions.CurrentStringToSeconds(currents);
-                            //synchCurrent(current.ToString());
-                            //synchTextOutput(s);
                         }
                     }
                 } while (!d.EndOfStream);
@@ -105,9 +101,6 @@ namespace ms.video.downloader.service.Dowload
 
         private TimeSpan ParseDuration(string start, char end, string s)
         {
-            //  Duration: 00:03:43.84, start: 0.000000, bitrate: 716 kb/s
-            //size=     244kB time=00:00:15.57 bitrate= 128.4kbits/s    
-
             if (s == null) return new TimeSpan(0);
             var i = s.IndexOf(start, StringComparison.Ordinal);
             if (i < 0) return new TimeSpan(0);;
