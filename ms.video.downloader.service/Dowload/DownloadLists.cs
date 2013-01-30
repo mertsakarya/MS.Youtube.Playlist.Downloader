@@ -1,5 +1,9 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace ms.video.downloader.service.Dowload
 {
@@ -76,5 +80,30 @@ namespace ms.video.downloader.service.Dowload
 
         public new string Title { get { return "TOTAL"; } }
 
+
+        public void UpdatePlaylists()
+        {
+            var list = new List<string> { "#EXTM3U" };
+            var files = Directory.EnumerateFiles(KnownFolders.MusicLibrary.FolderName, "*.mp3", SearchOption.AllDirectories);
+            foreach (var fn in files) {
+                list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
+                list.Add(fn);
+            }
+            var fileName = KnownFolders.Root.FolderName + "\\" + "music.m3u8";
+            if (File.Exists(fileName)) File.Delete(fileName);
+            File.WriteAllLines(fileName, list, Encoding.UTF8);
+
+            list = new List<string> { "#EXTM3U" };
+            files = Directory.EnumerateFiles(KnownFolders.VideosLibrary.FolderName, "*.mp4", SearchOption.AllDirectories);
+            foreach (var fn in files) {
+                list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
+                list.Add(fn);
+            }
+            fileName = KnownFolders.Root.FolderName + "\\" + "videos.m3u8";
+            if (File.Exists(fileName)) File.Delete(fileName);
+            File.WriteAllLines(fileName, list, Encoding.UTF8);
+
+            Process.Start(fileName);
+        }
     }
 }

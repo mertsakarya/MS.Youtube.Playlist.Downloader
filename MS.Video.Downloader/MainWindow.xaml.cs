@@ -179,5 +179,10 @@ namespace ms.video.downloader
 
         #endregion
 
+        private void Play_Click(object sender, RoutedEventArgs e)
+        {
+            Lists.UpdatePlaylists();
+        }
+
     }
 }

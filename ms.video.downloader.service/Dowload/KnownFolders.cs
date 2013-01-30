@@ -44,16 +44,27 @@ namespace ms.video.downloader.service.Dowload
 
     public class KnownFolders
     {
+        private static StorageFolder _root;
+
         private static StorageFolder GetStorageFolder(string folderName)
         {
             var desktop = new StorageFolder { FolderName = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) };
-            var sf = DownloadHelper.GetFolder(desktop, "MS.Video.Downloader");
-            return DownloadHelper.GetFolder(sf, folderName);
+            _root = DownloadHelper.GetFolder(desktop, "MS.Video.Downloader");
+            return DownloadHelper.GetFolder(_root, folderName);
+        }
+
+        public static StorageFolder Root
+        {
+            get
+            {
+                return _root;
+            }
         }
 
         public static StorageFolder VideosLibrary
         {
-            get {
+            get
+            {
                 return GetStorageFolder("Video");
             }
         }

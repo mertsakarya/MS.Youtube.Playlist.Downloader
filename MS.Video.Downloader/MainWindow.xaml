@@ -14,6 +14,9 @@
                         <Button x:Name="GetVideo" Content=" Download Video " HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Click="GetVideo_Click"/>
                         <Button x:Name="GetList" Content=" Download Playlist " HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Click="GetList_Click"  />
                     </StackPanel>
+                    <Button Margin="0,0,92,0" HorizontalAlignment="Right" Width="33" Click="Play_Click">
+                        <Image Source="Resources/play.png" Height="20" Width="20"/>
+                    </Button>
                     <WebBrowser x:Name="Paypal" Margin="0,-12,-56,0" HorizontalAlignment="Right" Width="148" Height="44" VerticalAlignment="Bottom" Grid.RowSpan="2"/>
                 </Grid>
                 <WebBrowser x:Name="Browser" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,32,0,0" LoadCompleted="Browser_LoadCompleted" Navigated="Browser_Navigated"/>
