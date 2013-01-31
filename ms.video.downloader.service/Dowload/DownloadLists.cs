@@ -12,9 +12,9 @@ namespace ms.video.downloader.service.Dowload
         private readonly LocalService _settings;
         private readonly ListDownloadStatusEventHandler _onStatusChanged;
 
-        public DownloadLists(LocalService settings, ListDownloadStatusEventHandler onStatusChanged)
+        public DownloadLists(ListDownloadStatusEventHandler onStatusChanged)
         {
-            _settings = settings;
+            _settings = LocalService.Instance;
             _onStatusChanged = onStatusChanged;
             if (_settings.FillDownloadLists(this) && Entries.Count > 0) StartDownload(); else Entries.Clear();
         }
@@ -104,6 +104,16 @@ namespace ms.video.downloader.service.Dowload
             File.WriteAllLines(fileName, list, Encoding.UTF8);
 
             Process.Start(fileName);
+        }
+
+        public override void Delete()
+        {
+            base.Delete();
+            foreach (DownloadList downloadList in Entries)
+                downloadList.OnListDownloadStatusChange = null;
+            Entries.Clear();
+            _settings.SaveDownloadLists(this);
+            UpdateStatus(null, null, DownloadState.AllFinished, 100.0);
         }
     }
 }

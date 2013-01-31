@@ -22,9 +22,9 @@ namespace ms.video.downloader
         public MainWindow()
         {
             InitializeComponent();
-            _settings = new LocalService();
+            _settings = LocalService.Instance;
             Title = "MS.Video.Downloader ver. " + _settings.Version;
-            Lists = new DownloadLists(_settings, OnDownloadStatusChange);
+            Lists = new DownloadLists(OnDownloadStatusChange);
             Loading(false);
         }
 
@@ -182,6 +182,11 @@ namespace ms.video.downloader
         private void Play_Click(object sender, RoutedEventArgs e)
         {
             Lists.UpdatePlaylists();
+        }
+
+        private void StopAllDownloads_Click(object sender, RoutedEventArgs e)
+        {
+            Lists.Delete();
         }
 
     }

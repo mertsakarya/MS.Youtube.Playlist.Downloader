@@ -30,7 +30,7 @@ namespace ms.video.downloader.service.Dowload
         public StorageFolder StorageFolder { get; set; }
         public string FileName { get; set; }
         public override string ToString() { return Path.Combine(StorageFolder.ToString(), FileName); }
-
+        public long Length { get { return (new FileInfo(ToString())).Length; } }
         public void DeleteAsync() { File.Delete(ToString()); }
         public Stream OpenStreamForWriteAsync()
         {

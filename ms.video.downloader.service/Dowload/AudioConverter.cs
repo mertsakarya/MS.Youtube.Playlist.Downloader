@@ -69,7 +69,6 @@ namespace ms.video.downloader.service.Dowload
             process.Start();
             using (var d = process.StandardError) {
                 var duration = new TimeSpan();
-                TimeSpan current;
                 do {
                     var s = d.ReadLine() ?? "";
                     Debug.WriteLine(s);
@@ -78,7 +77,7 @@ namespace ms.video.downloader.service.Dowload
                     }
                     else {
                         if (s.Contains(" time=")) {
-                            current = ParseDuration(" time=", ' ', s);
+                            TimeSpan current = ParseDuration(" time=", ' ', s);
                             var percentage = (current.TotalMilliseconds / duration.TotalMilliseconds) * 50;
                             if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.DownloadProgressChanged, 50 + percentage );
                         }
@@ -103,7 +102,7 @@ namespace ms.video.downloader.service.Dowload
         {
             if (s == null) return new TimeSpan(0);
             var i = s.IndexOf(start, StringComparison.Ordinal);
-            if (i < 0) return new TimeSpan(0);;
+            if (i < 0) return new TimeSpan(0);
             i += start.Length;
             var j = s.IndexOf(end, i);
             j = j - i;
