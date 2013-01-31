@@ -8,7 +8,7 @@ This application is for downloading multiple videos from Youtube. You can downlo
 
 You can use this application to download individual videos and playlists, extract MP3 from videos, and browse Youtube.
 
-The binaries can be found at http://www.mertsakarya.com/MS.Youtube.Downloader/
+The binaries can be found at http://www.mertsakarya.com/ms.video.downloader/
 
 Notes about installation
 ------------------------
