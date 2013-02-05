@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SQLite;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ms.video.downloader.service.Dowload;
-using ms.video.downloader.service.Properties;
 
 namespace ms.video.downloader.service
 {
@@ -17,11 +13,7 @@ namespace ms.video.downloader.service
 
         public static Settings Instance
         {
-            get
-            {
-                if (_instance == null) _instance = new Settings();
-                return _instance;
-            }
+            get { return _instance ?? (_instance = new Settings()); }
         }
 
         private const string DevelopmentVersion = "0.0.0.1";
