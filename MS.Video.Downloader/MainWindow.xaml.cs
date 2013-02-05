@@ -19,7 +19,7 @@ namespace ms.video.downloader
         public readonly DownloadLists Lists;
         private YoutubeUrl _youtubeUrl;
         private readonly Settings _settings;
-        private CacheManager _cacheManager;
+        private readonly CacheManager _cacheManager;
 
         public MainWindow()
         {
@@ -130,6 +130,9 @@ namespace ms.video.downloader
                         ProgressBar.Value = 0;
                         downloadItems.Entries.Clear();
                         return;
+                    case DownloadState.UpdateCache:
+                        _cacheManager.Save();
+                        return;
                     case DownloadState.DownloadProgressChanged:
                         ProgressBar.Value = percentage;
                         break;
@@ -138,7 +141,6 @@ namespace ms.video.downloader
                         break;
                 }
                 Log.Text = (entry != null) ? entry.ToString() : "";
-                _cacheManager.Save();
             }
             catch {}
         }

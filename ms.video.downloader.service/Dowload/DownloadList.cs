@@ -8,21 +8,17 @@ namespace ms.video.downloader.service.Dowload
     public class DownloadList : Feed
     {
         public MediaType MediaType { get; set; }
-        private bool _ignoreDownloaded;
-        private readonly int _poolSize;
+        private const int PoolSize = 5;
 
         [JsonIgnore] public ListDownloadStatusEventHandler OnListDownloadStatusChange;
 
-        public DownloadList(MediaType mediaType, ListDownloadStatusEventHandler onDownloadStatusChange = null,
-                            int poolSize = 3)
+        public DownloadList(MediaType mediaType, ListDownloadStatusEventHandler onDownloadStatusChange)
         {
             MediaType = mediaType;
             OnListDownloadStatusChange = onDownloadStatusChange;
-            _ignoreDownloaded = false;
-            _poolSize = poolSize;
         }
 
-        public void Download(bool ignoreDownloaded)
+        public void Download()
         {
             if (ExecutionStatus == ExecutionStatus.Deleted) { Delete(); return; }
             var count = Entries.Count;
@@ -33,32 +29,6 @@ namespace ms.video.downloader.service.Dowload
                 else { Title = firstEntry.ChannelName; if (string.IsNullOrEmpty(Title)) Title = firstEntry.Title; }
             }
             UpdateStatus(DownloadState.AllStart, null, 0.0);
-            _ignoreDownloaded = ignoreDownloaded;
-
-
-            var cache = CacheManager.Instance;
-            if (cache.UrlCaches.ContainsKey(YoutubeUrl.VideoId)) {
-                var storageFile = DownloadHelper.GetFile(VideoFolder, videoFile);
-
-                var fn = storageFile.ToString();
-                var urlCache = cache.UrlCaches[YoutubeUrl.VideoId];
-                if (storageFile.Length >= urlCache.Length) {
-                    if (!cache.VideoCaches.ContainsKey(fn)) {
-                        var videoCache = new VideoCache() { FileName = fn, VideoId = urlCache.VideoId, AudioFinished = false, Finished = false };
-                        cache.Set(videoCache);
-                    }
-                    if (cache.VideoCaches[fn].Finished)
-                        return;
-                }
-                var first = cache.VideoCaches.FirstOrDefault(p => p.Value.FileName != storageFile.ToString() && p.Value.Finished && File.Exists(p.Value.FileName));
-                if (first.Value != null) {
-                    File.Copy(first.Value.FileName, fn, true);
-                    cache.Set(new VideoCache() { Finished = true, FileName = fn, VideoId = urlCache.VideoId, AudioFinished = false });
-                    return;
-                }
-            }
-
-
             foreach (YoutubeEntry item in Entries) item.OnEntryDownloadStatusChange += OnDownloadStatusChanged;
             DownloadFirst();
 
@@ -93,7 +63,7 @@ namespace ms.video.downloader.service.Dowload
                 }
                 OnListDownloadStatusChange(this, feed, DownloadState, Percentage);
             }
-            if (downloadCount <= _poolSize)
+            if (downloadCount < PoolSize)
                 DownloadFirst();
         }
 
@@ -110,7 +80,7 @@ namespace ms.video.downloader.service.Dowload
                 var entry = Entries[i] as YoutubeEntry;
                 if (entry == null || entry.DownloadState != DownloadState.Initialized || entry.DownloadState == DownloadState.Deleted) continue;
                 entry.UpdateStatus(DownloadState.DownloadStart, 0.0);
-                Task.Factory.StartNew(() => entry.DownloadAsync(MediaType, _ignoreDownloaded));
+                Task.Factory.StartNew(() => entry.DownloadAsync(MediaType));
                 break;
             }
         }

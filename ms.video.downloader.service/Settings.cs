@@ -230,12 +230,8 @@ namespace ms.video.downloader.service
             _videoCaches = GetVideos() ?? new List<VideoCache>();
             VideoCaches = new Dictionary<string, VideoCache>();
             UrlCaches = new Dictionary<string, UrlCache>();
-            foreach (var item in _urlCaches.Where(item => !UrlCaches.ContainsKey(item.VideoId)))
-                UrlCaches.Add(item.VideoId, item);
-            foreach (var item in _videoCaches.Where(item => !VideoCaches.ContainsKey(item.FileName) && UrlCaches.ContainsKey(item.VideoId))) {
-                UrlCaches[item.VideoId].Videos.Add(item.FileName, item);
-                VideoCaches.Add(item.FileName, item);
-            }
+            foreach (var item in _urlCaches.Where(item => !UrlCaches.ContainsKey(item.VideoId))) UrlCaches.Add(item.VideoId, item);
+            foreach (var item in _videoCaches.Where(item => !VideoCaches.ContainsKey(item.FileName) && UrlCaches.ContainsKey(item.VideoId)))  VideoCaches.Add(item.FileName, item);
         }
 
         private void SetUrls(List<UrlCache> cache) { Settings.SetFile(Path.Combine(_settings.AppVersionFolder, UrlsFileName), cache); }
@@ -248,441 +244,70 @@ namespace ms.video.downloader.service
             SetUrls(_urlCaches);
             SetVideos(_videoCaches);
         }
-        public void Set(UrlCache cache)
+
+        public void SetUrl(string videoId, string title, long length)
         {
-            if (UrlCaches.ContainsKey(cache.VideoId)) {
-                var item = UrlCaches[cache.VideoId];
-                item.Length = cache.Length;
-                item.Title = cache.Title;
+            if (UrlCaches.ContainsKey(videoId)) {
+                var item = UrlCaches[videoId];
+                item.Length = length;
+                item.Title = title;
             } else {
+                var cache = new UrlCache { Length = length, Title = title, VideoId = videoId };
                 _urlCaches.Add(cache);
                 UrlCaches.Add(cache.VideoId, cache);
             }
         }
 
-        public void Set(VideoCache cache)
-        {
-            if(!UrlCaches.ContainsKey(cache.VideoId)) throw new Exception("Video Id not found in cache!!!");
-            var urlCache = UrlCaches[cache.VideoId];
-            if (VideoCaches.ContainsKey(cache.FileName)) {
-                var item = VideoCaches[cache.VideoId];
-                item.AudioFinished = cache.AudioFinished;
-                item.HasAudio = cache.HasAudio;
-                item.Finished = cache.Finished;
-                item.VideoId = cache.VideoId;
-            } else {
-                urlCache.Videos.Add(cache.FileName, cache);
-                _videoCaches.Add(cache);
-                VideoCaches.Add(cache.VideoId, cache);
-            }
-        }
-
-        public void Delete(UrlCache cache)
-        {
-            var videoId = cache.VideoId;
-            if (!UrlCaches.ContainsKey(videoId)) return;
-            foreach(var item in UrlCaches[videoId].Videos)
-                Delete(item.Value);
-        }
-        
-        public void Delete(VideoCache cache)
-        {
-            var videoId = cache.VideoId;
-            var fileName = cache.FileName;
-            if (VideoCaches.ContainsKey(fileName))
-                VideoCaches.Remove(fileName);
-            _videoCaches.Remove(cache);
-            if (UrlCaches.ContainsKey(videoId)) {
-                var urlCache = UrlCaches[videoId];
-                if (urlCache.Videos.ContainsKey(fileName)) {
-                    urlCache.Videos.Remove(fileName);
-                }
-                if (urlCache.Videos.Count == 0) {
-                    UrlCaches.Remove(videoId);
-                    _urlCaches.Remove(urlCache);
-                }
-            }
-        }
-
-        public void Finished(string videoId, string fileName)
+        public void SetFinished(string videoId, string fileName, bool finished)
         {
             if (VideoCaches.ContainsKey(fileName)) {
-                VideoCaches[fileName].Finished = true;
-            }
-            else {
-                var videoCache = new VideoCache() {VideoId = videoId, FileName = fileName, Finished = true};
-                Set(videoCache);
+                var item = VideoCaches[fileName];
+                if (item.VideoId == videoId)
+                    item.Finished = finished;
+            } else {
+                var videoCache = new VideoCache { VideoId = videoId, FileName = fileName, Finished = finished };
+                _videoCaches.Add(videoCache);
+                VideoCaches.Add(fileName, videoCache);
             }
         }
 
-        public void SetTotal(string videoId, string title, long length)
+        public bool NeedsDownload(string videoId, StorageFile storageFile)
         {
-            UrlCache urlCache;
-            if (UrlCaches.ContainsKey(videoId)) {
-                urlCache = UrlCaches[videoId];
-                urlCache.Title = title;
-                urlCache.Length = length;
+            if (UrlCaches.ContainsKey(videoId) && storageFile.Exists()) {
+                var fileName = storageFile.ToString();
+                var urlCache = UrlCaches[videoId];
+                if (storageFile.Length >= urlCache.Length) {
+                    if (!VideoCaches.ContainsKey(fileName)) 
+                        SetFinished(urlCache.VideoId, fileName, false);
+                    else if (VideoCaches[fileName].Finished)
+                        return false;
+                }
+                foreach (var item in VideoCaches.Where(p => p.Value.FileName != fileName && p.Value.Finished && File.Exists(p.Value.FileName) && p.Value.VideoId == videoId)) {
+                    try {
+                        File.Copy(item.Value.FileName, fileName, true);
+                    } catch (IOException) {
+                        return true;
+                    }
+                    SetFinished(urlCache.VideoId, fileName, true);
+                    return false;
+                }
             }
-            else {
-                urlCache = new UrlCache() {Length = length, Title = title, VideoId = videoId};
-                Set(urlCache);                
-            }
-
+            return true;
         }
     }
 
     public class UrlCache
     {
-        public UrlCache()
-        {
-            Videos = new Dictionary<string, VideoCache>();
-        }
         public string VideoId { get; set; }
         public string Title { get; set; }
         public long Length { get; set; }
-        [JsonIgnore]
-        public Dictionary<string, VideoCache> Videos { get; set; }
-
     }
 
     public class VideoCache
     {
         public string VideoId { get; set; }
         public string FileName { get; set; }
-        public bool HasAudio { get; set; }
-        public bool AudioFinished { get; set; }
         public bool Finished { get; set; }
     }
-
-    //public interface _IDbCache
-    //{
-    //    void CreateDb();
-    //    UrlCache GetUrl(string url);
-    //    void AddUrl(string url, string title, long length);
-    //    void AddFile(long urlId, string fileName, bool finished = false);
-    //    IList<UrlFileCache> GetFiles(long urlId);
-
-    //    void SetApplicationConfiguration(ApplicationConfiguration configuration);
-    //    ApplicationConfiguration GetApplicationConfiguration();
-    //    void SetDownloadLists(DownloadEntry listsEntry);
-    //    DownloadEntry GetDownloadLists();
-    //}
-
-    //public class _DbCache : IDbCache
-    //{
-    //    private readonly string _connectionString;
-
-    //    #region Data helper
-
-    //    private void ExecuteNonQueryCommand(string command)
-    //    {
-    //        using (var conn = new SQLiteConnection(_connectionString)) {
-    //            conn.Open();
-    //            using (var mytransaction = conn.BeginTransaction()) {
-    //                using (var mycommand = new SQLiteCommand(conn)) {
-    //                    mycommand.CommandText = command;
-    //                    mycommand.ExecuteNonQuery();
-    //                }
-    //                mytransaction.Commit();
-    //            }
-    //        }
-    //    }
-
-    //    private void ExecuteNonQueryCommand(SQLiteCommand command)
-    //    {
-    //        using (var conn = new SQLiteConnection(_connectionString)) {
-    //            conn.Open();
-    //            using (var mytransaction = conn.BeginTransaction()) {
-    //                command.Connection = conn;
-    //                command.ExecuteNonQuery();
-    //                mytransaction.Commit();
-    //            }
-    //        }
-    //    }
-
-    //    private object ExecuteScalarCommand(SQLiteCommand command)
-    //    {
-    //        using (var conn = new SQLiteConnection(_connectionString)) {
-    //            conn.Open();
-    //            command.Connection = conn;
-    //            try {
-    //                var val = command.ExecuteScalar();
-    //                return val;
-    //            }
-    //            catch (Exception ex) {
-    //                return null;
-    //            }
-    //        }
-    //    }
-
-    //    #endregion
-
-    //    private readonly string _fileName;
-
-    //    public DbCache(string fileName)
-    //    {
-    //        _fileName = fileName;
-    //        _connectionString = "Pooling=true;Data Source=" + _fileName;
-    //        CreateDb();
-    //    }
-
-    //    public void CreateDb()
-    //    {
-    //        try {
-    //            if (!File.Exists(_fileName)) {
-    //                SQLiteConnection.CreateFile(_fileName);
-    //                ExecuteNonQueryCommand(Resources.sqlite);
-    //            }
-    //        }
-    //        catch (SQLiteException) {
-    //            File.Delete(_fileName);
-    //        }
-    //        Task.Factory.StartNew(() => {
-    //            try {
-    //                ExecuteNonQueryCommand("REINDEX");
-    //                CheckAllVideos();
-    //            }
-    //            catch {}
-    //        });
-    //    }
-
-    //    public UrlCache GetUrl(string url)
-    //    {
-    //        try {
-    //            using (var conn = new SQLiteConnection(_connectionString)) {
-    //                conn.Open();
-    //                var command = new SQLiteCommand(conn) { CommandText = "SELECT id, length, title FROM urls WHERE url=@url"};
-    //                command.Parameters.Add(new SQLiteParameter {ParameterName = "@url", Value = url});
-    //                using (
-    //                    var reader = command.ExecuteReader(CommandBehavior.SingleRow | CommandBehavior.CloseConnection)) {
-    //                    if (!reader.HasRows) return null;
-    //                    return reader.Read()
-    //                               ? new UrlCache {
-    //                                   Id = reader.GetInt64(0),
-    //                                   Length = reader.GetInt64(1),
-    //                                   Title = reader.GetString(2),
-    //                                   Url = url
-    //                               }
-    //                               : null;
-    //                }
-    //            }
-    //        }
-    //        catch (SQLiteException) {
-    //            return null;
-    //        }
-    //    }
-
-    //    public void AddUrl(string url, string title, long length)
-    //    {
-    //        try {
-    //            var urlCache = GetUrl(url);
-    //            if (urlCache != null && urlCache.Length != length) {
-    //                UpdateUrl(url, length);
-    //                return;
-    //            }
-    //            var command = new SQLiteCommand {
-    //                CommandText = "INSERT INTO urls (url, length, title) VALUES (@url, @length, @title)"
-    //            };
-    //            command.Parameters.Add(new SQLiteParameter {ParameterName = "@url", Value = url});
-    //            command.Parameters.Add(new SQLiteParameter {ParameterName = "@length", Value = length});
-    //            command.Parameters.Add(new SQLiteParameter {ParameterName = "@title", Value = title});
-    //            ExecuteNonQueryCommand(command);
-    //        }
-    //        catch (SQLiteException) {}
-    //    }
-
-    //    public void UpdateUrl(string url, long length)
-    //    {
-    //        var command = new SQLiteCommand {CommandText = "UPDATE urls SET length=@length WHERE url=@url;"};
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@url", Value = url});
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@length", Value = length});
-    //        ExecuteNonQueryCommand(command);
-    //    }
-
-    //    public void AddFile(long urlId, string fileName, bool finished = false)
-    //    {
-    //        var urlFileCache = GetFile(fileName);
-    //        if (urlFileCache != null) {
-    //            if (finished != urlFileCache.Finished) UpdateFile(fileName, finished);
-    //            return;
-    //        }
-    //        var source = "videos";
-    //        var commandText = String.Format("INSERT INTO {0} (urlId, fileName, finished) VALUES (@urlId, @fileName, @finished)", source);
-    //        var command = new SQLiteCommand {CommandText = commandText};
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@urlId", Value = urlId});
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@fileName", Value = fileName});
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@finished", Value = ((finished) ? 1 : 0)});
-    //        try {
-    //            ExecuteNonQueryCommand(command);
-    //        }
-    //        catch (SQLiteException) {}
-    //    }
-
-    //    public UrlFileCache GetFile(string fileName)
-    //    {
-    //        try {
-    //            var source = "videos";
-    //            var commandText = String.Format("SELECT id, finished FROM {0} WHERE fileName=@fileName", source);
-    //            using (var conn = new SQLiteConnection(_connectionString)) {
-    //                conn.Open();
-    //                var command = new SQLiteCommand(conn) {CommandText = commandText};
-    //                command.Parameters.Add(new SQLiteParameter {ParameterName = "@fileName", Value = fileName});
-    //                using (
-    //                    var reader = command.ExecuteReader(CommandBehavior.SingleRow | CommandBehavior.CloseConnection)) {
-    //                    if (!reader.HasRows) return null;
-    //                    while (reader.Read()) {
-    //                        var urlFileCache = new UrlFileCache {
-    //                            Id = reader.GetInt64(0),
-    //                            FileName = fileName,
-    //                            Finished = (reader.GetInt64(1) == 1),
-    //                        };
-    //                        return urlFileCache;
-    //                    }
-    //                }
-    //            }
-    //        }
-    //        catch (SQLiteException) {}
-    //        return null;
-    //    }
-
-    //    public IList<UrlFileCache> GetFiles(long urlId)
-    //    {
-    //        try {
-    //            var source = "videos";
-    //            var commandText = String.Format("SELECT id, fileName, finished FROM {0} WHERE urlId=@urlId", source);
-    //            using (var conn = new SQLiteConnection(_connectionString)) {
-    //                conn.Open();
-    //                var command = new SQLiteCommand(conn) {CommandText = commandText};
-    //                command.Parameters.Add(new SQLiteParameter {ParameterName = "@urlId", Value = urlId});
-    //                using (var reader = command.ExecuteReader(CommandBehavior.CloseConnection)) {
-    //                    var list = new List<UrlFileCache>();
-    //                    if (!reader.HasRows) return null;
-    //                    while (reader.Read()) {
-    //                        var urlFileCache = new UrlFileCache {
-    //                            Id = reader.GetInt64(0),
-    //                            UrlId = urlId,
-    //                            FileName = reader.GetString(1),
-    //                            Finished = (reader.GetInt64(2) == 1),
-    //                        };
-    //                        list.Add(urlFileCache);
-    //                    }
-    //                    return list;
-    //                }
-    //            }
-    //        }
-    //        catch (SQLiteException) {
-    //            return null;
-    //        }
-    //    }
-
-    //    private void SetKeyValue<T>(string key, T value)
-    //    {
-    //        var data = JsonConvert.SerializeObject(value);
-    //        var command = new SQLiteCommand {
-    //            CommandText = "INSERT OR REPLACE INTO keyValues (key, value) VALUES (@key, @value)"
-    //        };
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@key", Value = key});
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@value", Value = data});
-    //        ExecuteNonQueryCommand(command);
-    //    }
-
-    //    private T GetKeyValue<T>(string key)
-    //    {
-    //        var command = new SQLiteCommand {CommandText = "SELECT value FROM keyValues WHERE key=@key"};
-    //        command.Parameters.Add(new SQLiteParameter {ParameterName = "@key", Value = key});
-    //        var value = ExecuteScalarCommand(command) as string;
-    //        if (String.IsNullOrEmpty(value)) return default(T);
-    //        var result = JsonConvert.DeserializeObject<T>(value);
-    //        return result;
-    //    }
-
-    //    public void SetApplicationConfiguration(ApplicationConfiguration configuration)
-    //    {
-    //        SetKeyValue("config", configuration);
-    //    }
-
-    //    public void SetDownloadLists(DownloadEntry listsEntry)
-    //    {
-    //        SetKeyValue("lists", listsEntry);
-    //    }
-
-    //    public ApplicationConfiguration GetApplicationConfiguration()
-    //    {
-    //        return GetKeyValue<ApplicationConfiguration>("config");
-    //    }
-
-    //    public DownloadEntry GetDownloadLists()
-    //    {
-    //        return GetKeyValue<DownloadEntry>("lists");
-    //    }
-
-
-    //    private void UpdateFile(string fileName, bool finished)
-    //    {
-    //        using (var conn = new SQLiteConnection(_connectionString)) {
-    //            conn.Open();
-    //            UpdateFile(conn, fileName, finished);
-    //        }
-    //    }
-    //    private void UpdateFile(SQLiteConnection conn, string fileName, bool finished)
-    //    {
-    //        using (var command = new SQLiteCommand("UPDATE videos SET finished=@finished WHERE fileName=@fileName", conn)) {
-    //            command.Parameters.Add(new SQLiteParameter { ParameterName = "@fileName", Value = fileName });
-    //            command.Parameters.Add(new SQLiteParameter { ParameterName = "@finished", Value = ((finished) ? 1 : 0) });
-    //            command.ExecuteNonQuery();
-    //        }
-    //    }
-
-    //    private void DeleteFile(SQLiteConnection conn, string fileName, long urlId)
-    //    {
-    //        var command2 = new SQLiteCommand("DELETE from videos WHERE fileName=@fileName", conn);
-    //        command2.Parameters.Add(new SQLiteParameter { ParameterName = "@fileName", Value = fileName });
-    //        command2.ExecuteNonQuery();
-    //        var command3 = new SQLiteCommand("SELECT urlId from videos WHERE urlId=@urlId", conn);
-    //        command3.Parameters.Add(new SQLiteParameter { ParameterName = "@urlId", Value = urlId });
-    //        var reader = command3.ExecuteReader();
-    //        if (!reader.HasRows) {
-    //            var command = new SQLiteCommand("DELETE from urls WHERE id=@urlId", conn);
-    //            command.Parameters.Add(new SQLiteParameter { ParameterName = "@urlId", Value = urlId });
-    //            command.ExecuteNonQuery();
-    //        }
-    //    }
-
-    //    private void CheckAllVideos()
-    //    {
-    //        using (var conn = new SQLiteConnection(_connectionString)) {
-    //            conn.Open();
-    //            using (var mytransaction = conn.BeginTransaction()) {
-    //                try {
-    //                    using (
-    //                        var command = new SQLiteCommand("SELECT fileName, finished, length, urlId  FROM urls inner join videos on videos.urlid = urls.id", conn)) {
-    //                        using (var reader = command.ExecuteReader(CommandBehavior.SingleResult)) {
-    //                            while (reader.Read()) {
-    //                                var fileName = reader.GetString(0);
-    //                                var finished = (reader.GetInt64(1) != 0);
-    //                                var videoLength = reader.GetInt64(2);
-    //                                var urlId = reader.GetInt64(3);
-    //                                long fileLength = 0;
-    //                                if (File.Exists(fileName))
-    //                                    fileLength = new FileInfo(fileName).Length;
-    //                                else
-    //                                    DeleteFile(conn, fileName, urlId);
-    //                                var shouldBeFinished = fileLength == videoLength;
-    //                                if (shouldBeFinished && finished) continue;
-    //                                if (!shouldBeFinished && !finished) continue;
-    //                                UpdateFile(conn, fileName, shouldBeFinished);
-    //                            }
-    //                        }
-    //                    }
-    //                    mytransaction.Commit();
-
-    //                }
-    //                catch {
-    //                    mytransaction.Rollback();
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
     #endregion
 }

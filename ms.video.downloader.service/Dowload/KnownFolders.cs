@@ -40,6 +40,11 @@ namespace ms.video.downloader.service.Dowload
                 return null;
             }
         }
+
+        public bool Exists()
+        {
+            return File.Exists(ToString());
+        }
     }
 
     public class KnownFolders

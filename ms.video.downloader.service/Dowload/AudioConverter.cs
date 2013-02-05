@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Threading.Tasks;
 using System.Xml;
 using TagLib;
 using File = TagLib.File;
@@ -26,22 +25,23 @@ namespace ms.video.downloader.service.Dowload
 
         public void ConvertToMp3()
         {
-
             if (_youtubeEntry.DownloadState != DownloadState.DownloadFinish) return;
             var title = DownloadHelper.GetLegalPath(_youtubeEntry.Title);
             var audioFileName = title + ".mp3";
             var videoFileName = title + _youtubeEntry.VideoExtension;
             var fileExists = DownloadHelper.FileExists(_youtubeEntry.VideoFolder, videoFileName);
             if (!fileExists) return;
-            try {
-                if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
-                var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
-                var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
-                TranscodeFile(videoFile, audioFile);
-                //Task.Factory.StartNew(() => TranscodeFile(videoFile, audioFile));
-            }
-            catch  {
-                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
+            fileExists = DownloadHelper.FileExists(_youtubeEntry.DownloadFolder, audioFileName);
+            if (fileExists) {
+                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Ready, 100.0);
+            } else {
+                try {
+                    var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
+                    var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
+                    TranscodeFile(videoFile, audioFile);
+                } catch {
+                    if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
+                }
             }
         }
 
@@ -67,7 +67,6 @@ namespace ms.video.downloader.service.Dowload
                 var duration = new TimeSpan();
                 do {
                     var s = d.ReadLine() ?? "";
-                    Debug.WriteLine(s);
                     if (s.Contains("Duration: ")) {
                         duration = ParseDuration("Duration: ", ',', s);
                     }

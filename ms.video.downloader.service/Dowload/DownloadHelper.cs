@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -136,13 +135,12 @@ namespace ms.video.downloader.service.Dowload
         public static bool FileExists(StorageFolder folder, string videoFile)
         {
             var file = new StorageFile {StorageFolder = folder, FileName = videoFile};
-            return File.Exists(file.ToString());
+            return file.Exists();
         }
 
-        public static void DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
+        public static void DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFile storageFile, MSYoutubeLoading onYoutubeLoading)
         {
             if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
-            var storageFile = GetFile(folder, fileName);
             using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
                 if (destinationStream == null) return;
                 var start = destinationStream.Length;
@@ -157,13 +155,13 @@ namespace ms.video.downloader.service.Dowload
             var response = DownloadToStreamAsync(uri, start, stop);
             var cache = CacheManager.Instance;
             if (response == null || response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable) {
-                cache.SetTotal(entry.YoutubeUrl.VideoId, entry.Title, (new FileInfo(storageFile.ToString())).Length);
+                cache.SetUrl(entry.YoutubeUrl.VideoId, entry.Title, (new FileInfo(storageFile.ToString())).Length);
                 return;
             }
             var range = GetRange(response);
-            var total =  range.Length; // (response.Headers.ContentRange.Length ?? 0);
-            cache.SetTotal(entry.YoutubeUrl.VideoId, entry.Title, total);
-            var to = range.To; // (response.Headers.ContentRange.To ?? 0);
+            var total =  range.Length;
+            cache.SetUrl(entry.YoutubeUrl.VideoId, entry.Title, total);
+            var to = range.To;
             using (var stream = response.GetResponseStream()) {
                 if (stream == null) return;
                 stream.CopyTo(destinationStream);

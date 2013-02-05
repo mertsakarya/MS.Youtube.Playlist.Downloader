@@ -23,7 +23,7 @@ namespace ms.video.downloader.service.Dowload
         public Feed Add(IEnumerable entries, MediaType mediaType)
         {
             var downloadList = SoftAdd(entries, mediaType);
-            Task.Factory.StartNew(() => downloadList.Download(true));
+            Task.Factory.StartNew(downloadList.Download);
             return downloadList;
         }
 
@@ -39,7 +39,7 @@ namespace ms.video.downloader.service.Dowload
         {
             foreach (var downloadItems in Entries.Cast<DownloadList>().Where(downloadItems => downloadItems.Entries.Count > 0)) {
                 var items = downloadItems;
-                Task.Factory.StartNew(() => items.Download(true));
+                Task.Factory.StartNew(() => items.Download());
             }
         }
 

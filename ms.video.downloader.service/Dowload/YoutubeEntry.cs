@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
@@ -79,18 +77,11 @@ namespace ms.video.downloader.service.Dowload
             Entries = new ObservableCollection<Feed>();
             try {
                 if (!String.IsNullOrEmpty(items.AuthorId)) {
-                    var favoritesEntry = new YoutubeEntry(this) {
-                        Title = "Favorite Videos",
-                        Uri = new Uri("http://www.youtube.com/playlist?list=FL" + items.AuthorId),
-                    };
+                    var favoritesEntry = new YoutubeEntry(this) {Title = "Favorite Videos", Uri = new Uri("http://www.youtube.com/playlist?list=FL" + items.AuthorId)};
                     Entries.Add(favoritesEntry);
                 }
                 foreach (var member in items.Entries) {
-                    var entry = new YoutubeEntry(this) {
-                        Title = member.Title,
-                        Uri = member.Uri,
-                        Description = member.Description
-                    };
+                    var entry = new YoutubeEntry(this) {Title = member.Title, Uri = member.Uri, Description = member.Description};
                     Entries.Add(entry);
                 }
             } catch {
@@ -102,7 +93,7 @@ namespace ms.video.downloader.service.Dowload
         private void FillEntriesChannel(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
         {
             var url = "";
-            if (!String.IsNullOrEmpty(YoutubeUrl.ChannelId)) 
+            if (!String.IsNullOrEmpty(YoutubeUrl.ChannelId))
                 url = "https://gdata.youtube.com/feeds/api/playlists/" + YoutubeUrl.ChannelId;
             else if (!String.IsNullOrEmpty(YoutubeUrl.FeedId))
                 url = String.Format("https://gdata.youtube.com/feeds/api/users/{0}/uploads", YoutubeUrl.FeedId);
@@ -163,16 +154,40 @@ namespace ms.video.downloader.service.Dowload
                 DownloadFolder = DownloadHelper.GetFolder(ProviderFolder, DownloadHelper.GetLegalPath(ChannelName));
             }
 
-            var videoInfos = DownloadHelper.GetDownloadUrlsAsync(Uri);
-            VideoInfo videoInfo = null;
-            foreach (VideoInfo info in videoInfos) if (info.VideoType == VideoType.Mp4 && info.Resolution == 360) { videoInfo = info; break; }
-            if (videoInfo == null) { UpdateStatus(DownloadState.Error); return; }
-            Title = videoInfo.Title;
-            VideoExtension = videoInfo.VideoExtension;
-            var videoFile = DownloadHelper.GetLegalPath(Title) + VideoExtension;
-            UpdateStatus(DownloadState.TitleChanged, Percentage);
-            DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, VideoFolder, videoFile,OnYoutubeLoading);
+            var videoInCache = false;
+            if (!String.IsNullOrEmpty(Title)) {
+                VideoExtension = ".mp4";
+                var videoFile1 = DownloadHelper.GetLegalPath(Title) + VideoExtension;
+                var storageFile1 = DownloadHelper.GetFile(VideoFolder, videoFile1);
+                if (!CacheManager.Instance.NeedsDownload(YoutubeUrl.VideoId, storageFile1))
+                    videoInCache = true;
+            }
+            if (!videoInCache) {
+                var videoInfos = DownloadHelper.GetDownloadUrlsAsync(Uri);
+                VideoInfo videoInfo = null;
+                foreach (VideoInfo info in videoInfos)
+                    if (info.VideoType == VideoType.Mp4 && info.Resolution == 360) {
+                        videoInfo = info;
+                        break;
+                    }
+                if (videoInfo == null) {
+                    UpdateStatus(DownloadState.Error);
+                    return;
+                }
+                Title = videoInfo.Title;
+                VideoExtension = videoInfo.VideoExtension;
+                var videoFile = DownloadHelper.GetLegalPath(Title) + VideoExtension;
+                UpdateStatus(DownloadState.TitleChanged, Percentage);
+                var storageFile = DownloadHelper.GetFile(VideoFolder, videoFile);
+                if (CacheManager.Instance.NeedsDownload(YoutubeUrl.VideoId, storageFile)) {
+                    CacheManager.Instance.SetFinished(YoutubeUrl.VideoId, storageFile.ToString(), false);
+                    DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, storageFile, OnYoutubeLoading);
+                    CacheManager.Instance.SetFinished(YoutubeUrl.VideoId, storageFile.ToString(), true);
+                    if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, DownloadState.UpdateCache, Percentage);
+                }
+            }
             DownloadState = DownloadState.DownloadFinish;
+            //UpdateStatus(DownloadState, (MediaType == MediaType.Audio) ? 50 : 100);
             if (MediaType == MediaType.Audio) {
                 Percentage = 50.0;
                 var converter = new AudioConverter(this, OnAudioConversionStatusChange);
