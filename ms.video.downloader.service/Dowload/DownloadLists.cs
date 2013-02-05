@@ -39,7 +39,7 @@ namespace ms.video.downloader.service.Dowload
         {
             foreach (var downloadItems in Entries.Cast<DownloadList>().Where(downloadItems => downloadItems.Entries.Count > 0)) {
                 var items = downloadItems;
-                Task.Factory.StartNew(() => items.Download());
+                Task.Factory.StartNew(items.Download);
             }
         }
 
@@ -60,6 +60,8 @@ namespace ms.video.downloader.service.Dowload
             }
             average = average/Entries.Count;
 
+            if(downloadState == DownloadState.Error || downloadState == DownloadState.Ready || downloadState == DownloadState.AllStart || downloadState == DownloadState.AllFinished)
+                _settings.SaveDownloadLists(this);
             if (downloadState == DownloadState.DownloadProgressChanged)
                 UpdateStatus(downloadList, entry, DownloadState.DownloadProgressChanged, average);
             else if (finishedCount == Entries.Count) 
@@ -72,7 +74,6 @@ namespace ms.video.downloader.service.Dowload
                         downloadState == DownloadState.DownloadProgressChanged
                     )) 
                 _onStatusChanged(downloadList, entry, downloadState, percentage);
-            _settings.SaveDownloadLists(this);
         }
 
         private void UpdateStatus(Feed downloadList, Feed entry, DownloadState state, double percentage)

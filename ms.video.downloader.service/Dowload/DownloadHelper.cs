@@ -149,7 +149,7 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
-        private static void AddToFile(YoutubeEntry entry, Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading, StorageFile storageFile)
+        private static void AddToFile(YoutubeEntry entry, Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading, StorageFile storageFile, bool retry = false)
         {
             if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
             var response = DownloadToStreamAsync(uri, start, stop);
@@ -164,11 +164,16 @@ namespace ms.video.downloader.service.Dowload
             var to = range.To;
             using (var stream = response.GetResponseStream()) {
                 if (stream == null) return;
-                stream.CopyTo(destinationStream);
-                destinationStream.Flush();
+                try {
+                    stream.CopyTo(destinationStream);
+                    destinationStream.Flush();
+                } catch (WebException ex) {
+                    if (retry) return;
+                    AddToFile(entry, uri, destinationStream, start, stop, onYoutubeLoading, storageFile, true);
+                }
                 if (onYoutubeLoading != null && entry.ExecutionStatus == ExecutionStatus.Normal) onYoutubeLoading(to, total);
-                if (total > to + 1)
-                    AddToFile(entry, uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading, storageFile);
+                    if (total > to + 1)
+                        AddToFile(entry, uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading, storageFile);
             }
         }
 

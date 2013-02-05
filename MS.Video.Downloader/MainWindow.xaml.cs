@@ -11,6 +11,7 @@ using System.Windows.Threading;
 using Newtonsoft.Json;
 using ms.video.downloader.service;
 using ms.video.downloader.service.Dowload;
+using mshtml;
 
 namespace ms.video.downloader
 {
@@ -18,6 +19,7 @@ namespace ms.video.downloader
     {
         public readonly DownloadLists Lists;
         private YoutubeUrl _youtubeUrl;
+        private YoutubeEntry _youtubeEntry;
         private readonly Settings _settings;
         private readonly CacheManager _cacheManager;
 
@@ -40,28 +42,32 @@ namespace ms.video.downloader
                 var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
                 Paypal.NavigateToString(paypalHtml);
             }
-            Navigate(new Uri("http://www.youtube.com/"));
+            Navigate(new Uri(Url.Text));
         }
 
         private void Loading(bool show = true)
         {
             GetList.Visibility = Visibility.Collapsed;
             GetVideo.Visibility = Visibility.Collapsed;
+            GetPage.Visibility = Visibility.Collapsed;
             ConvertMp3.Visibility = Visibility.Collapsed;
             if (!show) return;
-            if (_youtubeUrl != null) {
-                switch (_youtubeUrl.Type) {
-                    case VideoUrlType.Channel:
+            if (!(_youtubeEntry == null || _youtubeEntry.Entries == null || _youtubeEntry.Entries.Count == 0)) {
+                GetPage.Visibility = Visibility.Visible;
+                GetPage.Content = String.Format(" Download Page ({0}) ", _youtubeEntry.Entries.Count);
+            }
+            if (_youtubeUrl == null) return;
+            switch (_youtubeUrl.Type) {
+                case VideoUrlType.Channel:
+                    GetList.Visibility = Visibility.Visible;
+                    ConvertMp3.Visibility = Visibility.Visible;
+                    break;
+                case VideoUrlType.Video:
+                    if (_youtubeUrl.ChannelId != "")
                         GetList.Visibility = Visibility.Visible;
-                        ConvertMp3.Visibility = Visibility.Visible;
-                        break;
-                    case VideoUrlType.Video:
-                        if (_youtubeUrl.ChannelId != "")
-                            GetList.Visibility = Visibility.Visible;
-                        GetVideo.Visibility = Visibility.Visible;
-                        ConvertMp3.Visibility = Visibility.Visible;
-                        break;
-                }
+                    GetVideo.Visibility = Visibility.Visible;
+                    ConvertMp3.Visibility = Visibility.Visible;
+                    break;
             }
         }
 
@@ -70,6 +76,9 @@ namespace ms.video.downloader
             Url.Text = e.Uri.ToString();
             MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), _settings.Guid});
             _youtubeUrl = YoutubeUrl.Create(e.Uri);
+            var doc = Browser.Document as IHTMLDocument3;
+            var html = doc.documentElement.outerHTML;
+            _youtubeEntry = YoutubeEntry.Create(e.Uri, html);
             Loading();
         }
 
@@ -97,7 +106,15 @@ namespace ms.video.downloader
         }
 
         private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
-        
+
+        private void GetPage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_youtubeEntry.Entries.Count <= 0) return;
+            var list = new List<Feed>(_youtubeEntry.Entries.Count);
+            list.AddRange(_youtubeEntry.Entries);
+            DownloadList(list);
+        }
+
         private void GetList_Click(object sender, RoutedEventArgs e) { YoutubeEntry.Create(_youtubeUrl.Uri).GetEntries(DownloadList); }
         
         private void DownloadList(IList list)
@@ -113,8 +130,7 @@ namespace ms.video.downloader
         private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
             try {
-                Dispatcher.Invoke(DispatcherPriority.Normal,
-                                  new Action(() => UpdateStatus(downloadItems, entry, downloadState, percentage)));
+                Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => UpdateStatus(downloadItems, entry, downloadState, percentage)));
             } catch {}
         }
 
@@ -203,6 +219,11 @@ namespace ms.video.downloader
         private void StopAllDownloads_Click(object sender, RoutedEventArgs e)
         {
             Lists.Delete();
+        }
+
+        private void Window_Closing_1(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            _settings.SaveDownloadLists(Lists);
         }
 
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
@@ -44,7 +45,60 @@ namespace ms.video.downloader.service.Dowload
             set { _uri = value; if (value != null) YoutubeUrl = YoutubeUrl.Create(_uri); }
         }
 
-        private YoutubeEntry(YoutubeEntry parent = null)
+        public static YoutubeEntry Create(Uri uri, YoutubeEntry parent = null)
+        {
+            var entry = new YoutubeEntry(parent);
+            if (uri != null)
+                entry.Uri = uri;
+            return entry;
+        }
+
+        public static YoutubeEntry Create(Uri uri, string html)
+        {
+            var entry = new YoutubeEntry();
+            if (uri != null)
+                entry.Uri = uri;
+            Parse(entry, html);
+            return entry;
+        }
+
+        private static void Parse(YoutubeEntry entry, string html)
+        {
+            var doc = new HtmlAgilityPack.HtmlDocument();
+            doc.LoadHtml(html);
+            try {
+                var titleNode = doc.DocumentNode.SelectSingleNode("//meta[@name='title']");
+                if (titleNode != null)
+                    entry.Title = titleNode.Attributes["content"].Value;
+                else {
+                    titleNode = doc.DocumentNode.SelectSingleNode("//title");
+                    if (titleNode != null) {
+                        var txt = titleNode.InnerText ?? "";
+                        txt = txt.Trim();
+                        if (txt.ToLowerInvariant().EndsWith(" - youtube"))
+                            txt = txt.Substring(0, txt.Length - " - youtube".Length).Trim();
+                        entry.Title = txt;
+                    }
+                }
+            } catch {
+                entry.Title = "";
+            }
+            var nodes = doc.DocumentNode.SelectNodes("//*[@data-context-item-id]"); //[@class contains 'feed-item-container']
+            if (nodes == null) return;
+            foreach (var node in nodes) {
+                var id = node.Attributes["data-context-item-id"].Value;
+                var youtubeEntry = YoutubeEntry.Create(new Uri("http://www.youtube.com/watch?v=" + id), entry);
+                try {
+                    youtubeEntry.Title = node.Attributes["data-context-item-title"].Value;
+                    youtubeEntry.ThumbnailUrl = node.SelectSingleNode("//img[@data-thumb]").Attributes["data-thumb"].Value;
+                    if (!(youtubeEntry.ThumbnailUrl.StartsWith("http:") || youtubeEntry.ThumbnailUrl.StartsWith("https:")))
+                        youtubeEntry.ThumbnailUrl = "http://" + youtubeEntry.ThumbnailUrl;
+                } catch {}
+                entry.Entries.Add(youtubeEntry);
+            }
+        }
+
+        public YoutubeEntry(YoutubeEntry parent = null)
         {
             Parent = parent;
             _settings = new MSYoutubeSettings( "MS.Youtube.Downloader", "AI39si76x-DO4bui7H1o0P6x8iLHPBvQ24exnPiM8McsJhVW_pnCWXOXAa1D8-ymj0Bm07XrtRqxBC7veH6flVIYM7krs36kQg" ) {AutoPaging = true, PageSize = 50};
@@ -243,14 +297,6 @@ namespace ms.video.downloader.service.Dowload
                 for (var i = 0; i < ThumbnailUrls.Length; i++)
                     entry.ThumbnailUrls[i] = ThumbnailUrls[i];
             }
-            return entry;
-        }
-
-        public static YoutubeEntry Create(Uri uri, YoutubeEntry parent = null)
-        {
-            var entry = new YoutubeEntry(parent);
-            if (uri != null) 
-                entry.Uri = uri;
             return entry;
         }
 
