@@ -77,8 +77,10 @@ namespace ms.video.downloader
             MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), _settings.Guid});
             _youtubeUrl = YoutubeUrl.Create(e.Uri);
             var doc = Browser.Document as IHTMLDocument3;
-            var html = doc.documentElement.outerHTML;
-            _youtubeEntry = YoutubeEntry.Create(e.Uri, html);
+            if (doc != null) {
+                var html = doc.documentElement.outerHTML;
+                _youtubeEntry = YoutubeEntry.Create(e.Uri, html);
+            }
             Loading();
         }
 
