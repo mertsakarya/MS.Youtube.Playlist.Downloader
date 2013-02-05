@@ -2,6 +2,7 @@
 (   
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   url TEXT, 
+  title TEXT,
   length INTEGER
 );
 CREATE TABLE IF NOT EXISTS videos
@@ -11,16 +12,14 @@ CREATE TABLE IF NOT EXISTS videos
   fileName TEXT,
   finished INTEGER
 );
-CREATE TABLE IF NOT EXISTS audios
+CREATE TABLE IF NOT EXISTS keyValues
 (
-  id INTEGER PRIMARY KEY,
-  urlId INTEGER,
-  fileName TEXT,
-  finished INTEGER
+  key TEXT,
+  value TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS keyValuesIndex ON keyValues ( key );
 CREATE UNIQUE INDEX IF NOT EXISTS urlsIndex ON urls ( url );
-CREATE INDEX IF NOT EXISTS audiosUrlIdIndex ON audios ( urlid );
+CREATE UNIQUE INDEX IF NOT EXISTS videosFileNameIndex ON videos ( fileName );
 CREATE INDEX IF NOT EXISTS videosUrlIdIndex ON videos ( urlid );
-CREATE INDEX IF NOT EXISTS audiosFileNameIndex ON audios ( urlid, fileName );
-CREATE INDEX IF NOT EXISTS videosFileNameIndex ON videos ( urlid, fileName );
+CREATE INDEX IF NOT EXISTS videosUrlIdFileNameIndex ON videos ( urlid, fileName );
 --REINDEX;

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
@@ -56,20 +58,23 @@ namespace ms.video.downloader.service.Dowload
         #endregion
 
         #region GetEntries
+
         public void GetEntries(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading = null)
         {
-            if(YoutubeUrl.Type == VideoUrlType.Channel || YoutubeUrl.ChannelId != "" || YoutubeUrl.FeedId != "")
-                FillEntriesChannel(onEntriesReady, onYoutubeLoading);
-            else if(YoutubeUrl.Type == VideoUrlType.User)
-                FillEntriesUser(onEntriesReady, onYoutubeLoading);
+            Task.Factory.StartNew(() => {
+                if (YoutubeUrl.Type == VideoUrlType.Channel || YoutubeUrl.ChannelId != "" || YoutubeUrl.FeedId != "")
+                    FillEntriesChannel(onEntriesReady, onYoutubeLoading);
+                else if (YoutubeUrl.Type == VideoUrlType.User)
+                    FillEntriesUser(onEntriesReady, onYoutubeLoading);
+            });
         }
 
-        private async void FillEntriesUser(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
+        private void FillEntriesUser(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
         {
             var youtubeUrl = YoutubeUrl;
             var request = new MSYoutubeRequest(_settings);
             var uri = new Uri(String.Format("https://gdata.youtube.com/feeds/api/users/{0}/playlists?v=2", youtubeUrl.UserId));
-            var items = await request.GetAsync(YoutubeUrl, uri, onYoutubeLoading);
+            var items = request.GetAsync(YoutubeUrl, uri, onYoutubeLoading);
             if (items == null) return;
             Entries = new ObservableCollection<Feed>();
             try {
@@ -94,7 +99,7 @@ namespace ms.video.downloader.service.Dowload
             if (onEntriesReady != null) onEntriesReady(Entries);
         }
 
-        private async void FillEntriesChannel(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
+        private void FillEntriesChannel(EntriesReady onEntriesReady, MSYoutubeLoading onYoutubeLoading)
         {
             var url = "";
             if (!String.IsNullOrEmpty(YoutubeUrl.ChannelId)) 
@@ -105,7 +110,7 @@ namespace ms.video.downloader.service.Dowload
 
             try {
                 var request = new MSYoutubeRequest(_settings);
-                var items = await request.GetAsync(YoutubeUrl, new Uri(url), onYoutubeLoading);
+                var items = request.GetAsync(YoutubeUrl, new Uri(url), onYoutubeLoading);
                 if (items == null)
                     Entries = new ObservableCollection<Feed>();
                 else {
@@ -142,10 +147,11 @@ namespace ms.video.downloader.service.Dowload
 
         #endregion
 
-        public async Task DownloadAsync(MediaType mediaType, bool ignore)
+        public void DownloadAsync(MediaType mediaType)
         {
             if (ExecutionStatus == ExecutionStatus.Deleted) { Delete(); return; }
-            UpdateStatus(DownloadState.DownloadStart, 0.0);
+            // Now Download Async calls this
+            // UpdateStatus(DownloadState.DownloadStart, 0.0);
             MediaType = mediaType;
             BaseFolder = KnownFolders.VideosLibrary;
             ProviderFolder = DownloadHelper.GetFolder(BaseFolder, Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
@@ -156,30 +162,28 @@ namespace ms.video.downloader.service.Dowload
                 ProviderFolder = DownloadHelper.GetFolder(audioFolder, Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
                 DownloadFolder = DownloadHelper.GetFolder(ProviderFolder, DownloadHelper.GetLegalPath(ChannelName));
             }
-            var videoInfos = await DownloadHelper.GetDownloadUrlsAsync(Uri);
+
+            var videoInfos = DownloadHelper.GetDownloadUrlsAsync(Uri);
             VideoInfo videoInfo = null;
-            foreach (VideoInfo info in videoInfos) if (info.VideoType == VideoType.Mp4 && info.Resolution == 360) {
-                    videoInfo = info;
-                    break;
-                }
+            foreach (VideoInfo info in videoInfos) if (info.VideoType == VideoType.Mp4 && info.Resolution == 360) { videoInfo = info; break; }
             if (videoInfo == null) { UpdateStatus(DownloadState.Error); return; }
             Title = videoInfo.Title;
             VideoExtension = videoInfo.VideoExtension;
-            DownloadState = DownloadState.TitleChanged;
             var videoFile = DownloadHelper.GetLegalPath(Title) + VideoExtension;
-            var fileExists = DownloadHelper.FileExists(VideoFolder, videoFile);
-            if (!(ignore && fileExists)) {
-                if (OnEntryDownloadStatusChange != null) OnEntryDownloadStatusChange(this, DownloadState, Percentage);
-                await DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, VideoFolder, videoFile,
-                    (count, total) => UpdateStatus(DownloadState.DownloadProgressChanged, ((double)count / total) * ((MediaType == MediaType.Audio) ? 50 : 100)));
-            }
+            UpdateStatus(DownloadState.TitleChanged, Percentage);
+            DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, VideoFolder, videoFile,OnYoutubeLoading);
             DownloadState = DownloadState.DownloadFinish;
             if (MediaType == MediaType.Audio) {
                 Percentage = 50.0;
                 var converter = new AudioConverter(this, OnAudioConversionStatusChange);
-                converter.ConvertToMp3(ignore);
+                converter.ConvertToMp3();
             } else if (OnEntryDownloadStatusChange != null)
                 UpdateStatus(DownloadState.Ready);
+        }
+
+        private void OnYoutubeLoading(long count, long total)
+        {
+            UpdateStatus(DownloadState.DownloadProgressChanged, ((double) count/total)*((MediaType == MediaType.Audio) ? 50 : 100));
         }
 
         private void OnAudioConversionStatusChange(Feed feed, DownloadState downloadState, double percentage)

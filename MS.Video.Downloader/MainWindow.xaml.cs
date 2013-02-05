@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
+using System.Windows.Threading;
 using Newtonsoft.Json;
 using ms.video.downloader.service;
 using ms.video.downloader.service.Dowload;
@@ -17,12 +18,14 @@ namespace ms.video.downloader
     {
         public readonly DownloadLists Lists;
         private YoutubeUrl _youtubeUrl;
-        private readonly LocalService _settings;
+        private readonly Settings _settings;
+        private CacheManager _cacheManager;
 
         public MainWindow()
         {
             InitializeComponent();
-            _settings = LocalService.Instance;
+            _settings = Settings.Instance;
+            _cacheManager = CacheManager.Instance;
             Title = "MS.Video.Downloader ver. " + _settings.Version;
             Lists = new DownloadLists(OnDownloadStatusChange);
             Loading(false);
@@ -32,9 +35,11 @@ namespace ms.video.downloader
         {
             DownloadStatusGrid.DataContext = Lists;
             DownloadStatusGrid.ItemsSource = Lists.Entries;
-            var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
-            var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
-            Paypal.NavigateToString(paypalHtml);
+            if (!_settings.IsDevelopment) {
+                var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
+                var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
+                Paypal.NavigateToString(paypalHtml);
+            }
             Navigate(new Uri("http://www.youtube.com/"));
         }
 
@@ -91,20 +96,27 @@ namespace ms.video.downloader
             if(Uri.TryCreate(Url.Text, UriKind.Absolute, out uri)) Navigate(uri);
         }
 
-    private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
+        private void GetVideo_Click(object sender, RoutedEventArgs e) { DownloadList(new List<YoutubeEntry>(1) { YoutubeEntry.Create(_youtubeUrl.Uri) }); }
         
         private void GetList_Click(object sender, RoutedEventArgs e) { YoutubeEntry.Create(_youtubeUrl.Uri).GetEntries(DownloadList); }
         
         private void DownloadList(IList list)
         {
-            if (list.Count == 0) return;
-            var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
-            Lists.Add(list, mediaType);
-            MixpanelTrack("Download", new { _settings.Guid });
+            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => {
+                if (list.Count == 0) return;
+                var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
+                Lists.Add(list, mediaType);
+                MixpanelTrack("Download", new {_settings.Guid});
+            }));
         }        
         
         private void OnDownloadStatusChange(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
-        { try { Dispatcher.Invoke(() => UpdateStatus(downloadItems, entry, downloadState, percentage)); } catch {} }
+        {
+            try {
+                Dispatcher.Invoke(DispatcherPriority.Normal,
+                                  new Action(() => UpdateStatus(downloadItems, entry, downloadState, percentage)));
+            } catch {}
+        }
 
         private void UpdateStatus(Feed downloadItems, Feed entry, DownloadState downloadState, double percentage)
         {
@@ -126,6 +138,7 @@ namespace ms.video.downloader
                         break;
                 }
                 Log.Text = (entry != null) ? entry.ToString() : "";
+                _cacheManager.Save();
             }
             catch {}
         }
@@ -138,6 +151,7 @@ namespace ms.video.downloader
         
         public void MixpanelTrack(string action, object obj = null)
         {
+            if (_settings.IsDevelopment) return;
             var objText = (obj == null) ? "" : ", " + JsonConvert.SerializeObject(obj);
             var cmd = "mixpanel.track('" + action + "'" + objText + ");";
             Paypal.InvokeScript("trackEval", cmd);

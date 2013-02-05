@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 using ms.video.downloader.service.MSYoutube;
 
@@ -16,16 +15,16 @@ namespace ms.video.downloader.service.Dowload
         private const long BlockSize = (1024 * 1024);
 
 
-        public static async Task<IEnumerable<VideoInfo>> GetDownloadUrlsAsync(Uri videoUri)
+        public static IEnumerable<VideoInfo> GetDownloadUrlsAsync(Uri videoUri)
         {
             if (videoUri == null) throw new ArgumentNullException("videoUri");
 
             var videoUrl = NormalizeYoutubeUrl(videoUri.ToString());
             var id = YoutubeUrl.GetVideoId(new Uri(videoUrl));
-            var pageSource = await GetPageSourceAsync(videoUrl);
+            var pageSource = GetPageSourceAsync(videoUrl);
             if (IsVideoUnavailable(pageSource)) throw new Exception("Video not available");
             var requestUrl = String.Format("http://www.youtube.com/get_video_info?&video_id={0}&el=detailpage&ps=default&eurl=&gl=US&hl=en", id);
-            var source = await GetPageSourceAsync(requestUrl);
+            var source = GetPageSourceAsync(requestUrl);
             try {
                 var videoInfos = GetVideoInfos(source);
                 return videoInfos;
@@ -67,9 +66,9 @@ namespace ms.video.downloader.service.Dowload
             return videoInfos;
         }
 
-        private static async Task<string> GetPageSourceAsync(string videoUrl)
+        private static string GetPageSourceAsync(string videoUrl)
         {
-            return await DownloadToStringAsync(new Uri(videoUrl));
+            return DownloadToStringAsync(new Uri(videoUrl));
         }
 
         private static bool IsVideoUnavailable(string pageSource)
@@ -140,65 +139,45 @@ namespace ms.video.downloader.service.Dowload
             return File.Exists(file.ToString());
         }
 
-        public static async Task DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
+        public static void DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFolder folder, string fileName, MSYoutubeLoading onYoutubeLoading)
         {
-            
             if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
             var storageFile = GetFile(folder, fileName);
-            var cache = LocalService.Instance.DbCache;
-            var cacheUrl = cache.GetUrl(entry.YoutubeUrl.VideoId);
-            if (cacheUrl != null) {
-                if (storageFile.Length >= cacheUrl.Length) {
-                    cache.AddFile(cacheUrl.Id, storageFile.ToString(), MediaType.Video, true);
-                    return;
-                } 
-                var first = cache.GetFiles(cacheUrl.Id, MediaType.Video).FirstOrDefault(p => p.FileName != fileName && p.Finished && File.Exists(p.FileName));
-                if (first != null) {
-                    File.Copy(first.FileName, storageFile.ToString(), true);
-                    cache.AddFile(cacheUrl.Id, storageFile.ToString(), MediaType.Video, true);
-                    return;
-                }
-            }
             using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
                 if (destinationStream == null) return;
-                //var properties = await storageFile.GetBasicPropertiesAsync();
-                var start = destinationStream.Length; // (long)properties.Size;
+                var start = destinationStream.Length;
                 destinationStream.Position = destinationStream.Length;
-                await AddToFile(entry, uri, destinationStream, start, start + BlockSize - 1, onYoutubeLoading, storageFile);
+                AddToFile(entry, uri, destinationStream, start, start + BlockSize - 1, onYoutubeLoading, storageFile);
             }
-            var urlCache = cache.GetUrl(entry.YoutubeUrl.VideoId);
-            if (urlCache != null)
-                cache.AddFile(urlCache.Id, storageFile.ToString(), MediaType.Video, true);
         }
 
-        private static async Task AddToFile(YoutubeEntry entry, Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading, StorageFile storageFile)
+        private static void AddToFile(YoutubeEntry entry, Uri uri, Stream destinationStream, long? start, long? stop, MSYoutubeLoading onYoutubeLoading, StorageFile storageFile)
         {
             if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
-            var response = await DownloadToStreamAsync(uri, start, stop);
-            var cache = LocalService.Instance.DbCache;
-            if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable) {
-                cache.AddUrl(entry.YoutubeUrl.VideoId, (new FileInfo(storageFile.ToString())).Length);
+            var response = DownloadToStreamAsync(uri, start, stop);
+            var cache = CacheManager.Instance;
+            if (response == null || response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable) {
+                cache.SetTotal(entry.YoutubeUrl.VideoId, entry.Title, (new FileInfo(storageFile.ToString())).Length);
                 return;
             }
             var range = GetRange(response);
             var total =  range.Length; // (response.Headers.ContentRange.Length ?? 0);
-            cache.AddUrl(entry.YoutubeUrl.VideoId, total);
+            cache.SetTotal(entry.YoutubeUrl.VideoId, entry.Title, total);
             var to = range.To; // (response.Headers.ContentRange.To ?? 0);
             using (var stream = response.GetResponseStream()) {
                 if (stream == null) return;
-                await stream.CopyToAsync(destinationStream);
-                await destinationStream.FlushAsync();
+                stream.CopyTo(destinationStream);
+                destinationStream.Flush();
                 if (onYoutubeLoading != null && entry.ExecutionStatus == ExecutionStatus.Normal) onYoutubeLoading(to, total);
                 if (total > to + 1)
-                    await AddToFile(entry, uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading, storageFile);
+                    AddToFile(entry, uri, destinationStream, to + 1, to + BlockSize, onYoutubeLoading, storageFile);
             }
         }
 
         private static ResponseContentRange GetRange(HttpWebResponse response)
         {
             var rangeHeader = response.Headers["Content-Range"];
-            var range = new ResponseContentRange();
-            range.ContentLength = response.ContentLength;
+            var range = new ResponseContentRange {ContentLength = response.ContentLength};
             if (rangeHeader == null || rangeHeader.Length <= 6 || !rangeHeader.StartsWith("bytes ")) return range;
             rangeHeader = rangeHeader.Substring(6);
             var posStart = rangeHeader.IndexOf('-');
@@ -216,21 +195,21 @@ namespace ms.video.downloader.service.Dowload
             return range;
         }
 
-        public static async Task<string> DownloadToStringAsync(Uri uri, Encoding encoding = null)
+        public static string DownloadToStringAsync(Uri uri, Encoding encoding = null)
         {
             if (encoding == null) encoding = Encoding.UTF8;
-            var bytes = await DownloadToByteArrayAsync(uri, encoding);
+            var bytes = DownloadToByteArrayAsync(uri, encoding);
             return encoding.GetString(bytes);
         }
 
-        public static async Task<byte[]> DownloadToByteArrayAsync(Uri uri, Encoding encoding = null)
+        public static byte[] DownloadToByteArrayAsync(Uri uri, Encoding encoding = null)
         {
-            var response = await DownloadToStreamAsync(uri);
+            var response = DownloadToStreamAsync(uri);
             using (var stream = response.GetResponseStream()) {
                 if (stream == null) return new byte[0];
                 using (var destinationStream = new MemoryStream()) {
-                    await stream.CopyToAsync(destinationStream);
-                    await destinationStream.FlushAsync();
+                    stream.CopyTo(destinationStream);
+                    destinationStream.Flush();
                     var bytes = destinationStream.ToArray();
                     return bytes;
                 }
@@ -246,13 +225,13 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
-        public static async Task<HttpWebResponse> DownloadToStreamAsync(Uri uri, long? start = null, long? end = null)
+        public static HttpWebResponse DownloadToStreamAsync(Uri uri, long? start = null, long? end = null)
         {
             var req = (HttpWebRequest) WebRequest.Create(uri);
             req.UserAgent = "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11";
             if (start != null || end != null) req.AddRange((int)(start ?? 0), (int)(end ?? 0));
             try {
-                var response = await req.GetResponseAsync() as HttpWebResponse;
+                var response = req.GetResponse() as HttpWebResponse;
                 return response;
             }
             catch(WebException ex) {

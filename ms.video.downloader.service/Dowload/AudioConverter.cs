@@ -24,7 +24,7 @@ namespace ms.video.downloader.service.Dowload
             _applicationPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
         }
 
-        public void ConvertToMp3(bool ignoreIfFileExists = false)
+        public void ConvertToMp3()
         {
 
             if (_youtubeEntry.DownloadState != DownloadState.DownloadFinish) return;
@@ -33,19 +33,15 @@ namespace ms.video.downloader.service.Dowload
             var videoFileName = title + _youtubeEntry.VideoExtension;
             var fileExists = DownloadHelper.FileExists(_youtubeEntry.VideoFolder, videoFileName);
             if (!fileExists) return;
-            fileExists = DownloadHelper.FileExists(_youtubeEntry.DownloadFolder, audioFileName);
-            if (ignoreIfFileExists && fileExists) {
-                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Ready, 100.0);
-            } else {
-                try {
-                    if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
-                    var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
-                    var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
-                    Task.Factory.StartNew(() => TranscodeFile(videoFile, audioFile));
-                }
-                catch  {
-                    if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
-                }
+            try {
+                if (fileExists) _youtubeEntry.DownloadFolder.GetFileAsync(audioFileName).DeleteAsync();
+                var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
+                var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
+                TranscodeFile(videoFile, audioFile);
+                //Task.Factory.StartNew(() => TranscodeFile(videoFile, audioFile));
+            }
+            catch  {
+                if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
             }
         }
 

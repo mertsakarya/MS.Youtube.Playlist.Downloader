@@ -4,17 +4,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ms.video.downloader.service.Dowload
 {
     public class DownloadLists : Feed
     {
-        private readonly LocalService _settings;
+        private readonly Settings _settings;
         private readonly ListDownloadStatusEventHandler _onStatusChanged;
 
         public DownloadLists(ListDownloadStatusEventHandler onStatusChanged)
         {
-            _settings = LocalService.Instance;
+            _settings = Settings.Instance;
             _onStatusChanged = onStatusChanged;
             if (_settings.FillDownloadLists(this) && Entries.Count > 0) StartDownload(); else Entries.Clear();
         }
@@ -22,7 +23,7 @@ namespace ms.video.downloader.service.Dowload
         public Feed Add(IEnumerable entries, MediaType mediaType)
         {
             var downloadList = SoftAdd(entries, mediaType);
-            downloadList.Download(false);
+            Task.Factory.StartNew(() => downloadList.Download(true));
             return downloadList;
         }
 
@@ -36,7 +37,10 @@ namespace ms.video.downloader.service.Dowload
 
         private void StartDownload()
         {
-            foreach (var downloadItems in Entries.Cast<DownloadList>().Where(downloadItems => downloadItems.Entries.Count > 0)) downloadItems.Download(false);
+            foreach (var downloadItems in Entries.Cast<DownloadList>().Where(downloadItems => downloadItems.Entries.Count > 0)) {
+                var items = downloadItems;
+                Task.Factory.StartNew(() => items.Download(true));
+            }
         }
 
         private void OnDownloadStatusChange(Feed downloadList, Feed entry, DownloadState downloadState, double percentage)

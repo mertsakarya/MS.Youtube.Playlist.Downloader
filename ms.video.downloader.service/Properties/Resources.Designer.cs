@@ -62,27 +62,28 @@ namespace ms.video.downloader.service.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to CREATE TABLE IF NOT EXISTS urls
-        ///(
+        ///(   
         ///  id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ///  url TEXT
+        ///  url TEXT, 
+        ///  length INTEGER
         ///);
         ///CREATE TABLE IF NOT EXISTS videos
         ///(
         ///  id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ///  urlid INTEGER,
-        ///  filename TEXT,
+        ///  urlId INTEGER,
+        ///  fileName TEXT,
         ///  finished INTEGER
         ///);
         ///CREATE TABLE IF NOT EXISTS audios
         ///(
         ///  id INTEGER PRIMARY KEY,
-        ///  urlid INTEGER,
-        ///  filename TEXT,
+        ///  urlId INTEGER,
+        ///  fileName TEXT,
         ///  finished INTEGER
         ///);
-        ///CREATE INDEX IF NOT EXISTS urls ON videos ( url );
-        ///CREATE INDEX IF NOT EXISTS audiosUrlid ON audios ( urlid );
-        ///CREATE INDEX IF NOT EXISTS videosUrlid ON  [rest of string was truncated]&quot;;.
+        ///CREATE UNIQUE INDEX IF NOT EXISTS urlsIndex ON urls ( url );
+        ///CREATE INDEX IF NOT EXISTS videosUrlIdIndex ON videos ( urlid );
+        ///CREA [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string sqlite {
             get {
