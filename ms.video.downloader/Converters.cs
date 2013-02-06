@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Windows.Controls;
 using System.Windows.Data;
 using ms.video.downloader.service;
-using ms.video.downloader.service.Dowload;
+using ms.video.downloader.service.Download;
 
 namespace ms.video.downloader
 {

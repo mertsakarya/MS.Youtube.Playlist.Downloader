@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public delegate void ListDownloadStatusEventHandler(Feed list, Feed feed, DownloadState downloadState, double percentage);
 
@@ -25,7 +25,7 @@ namespace ms.video.downloader.service.Dowload
             if (count == 0) return;
             var firstEntry = Entries[0] as YoutubeEntry;
             if (firstEntry != null) {
-                if (count == 1) { Title = firstEntry.Title; }
+                if (count == 1) Title = firstEntry.Title;
                 else { Title = firstEntry.ChannelName; if (string.IsNullOrEmpty(Title)) Title = firstEntry.Title; }
             }
             UpdateStatus(DownloadState.AllStart, null, 0.0);
@@ -53,18 +53,12 @@ namespace ms.video.downloader.service.Dowload
 
             if (OnListDownloadStatusChange != null) {
                 DownloadState = downloadState;
-                if (downloadState == DownloadState.DownloadProgressChanged) {
-                    Percentage = average;
-                }
-                if (downloadCount == 0 && finishedCount == Entries.Count)
-                    DownloadState = DownloadState.AllFinished;
-                if (Entries.Count == 1 && downloadState == DownloadState.TitleChanged) {
-                    Title = Entries[0].Title;
-                }
+                if (downloadState == DownloadState.DownloadProgressChanged)  Percentage = average;
+                if (downloadCount == 0 && finishedCount == Entries.Count) DownloadState = DownloadState.AllFinished;
+                if (Entries.Count == 1 && downloadState == DownloadState.TitleChanged)  Title = Entries[0].Title;
                 OnListDownloadStatusChange(this, feed, DownloadState, Percentage);
             }
-            if (downloadCount < PoolSize)
-                DownloadFirst();
+            if (downloadCount < PoolSize) DownloadFirst();
         }
 
         private void UpdateStatus(DownloadState state, YoutubeEntry entry, double percentage)

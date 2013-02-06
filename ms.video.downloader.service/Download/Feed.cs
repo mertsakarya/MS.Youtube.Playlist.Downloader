@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Newtonsoft.Json;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public class Feed : INotifyPropertyChanged
     {

@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using ms.video.downloader.service.MSYoutube;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public static class DownloadHelper
     {
@@ -110,19 +110,6 @@ namespace ms.video.downloader.service.Dowload
         #endregion
         
         #region Download helpers
-        public static StorageFolder GetFolder(StorageFolder baseFolder, string folderName)
-        {
-            if (!Directory.Exists(baseFolder.ToString())) Directory.CreateDirectory(baseFolder.ToString());
-            var path = baseFolder + "\\" + folderName;
-            if(!Directory.Exists(path)) Directory.CreateDirectory(path);
-            return new StorageFolder(path);
-        }
-
-        public static StorageFile GetFile(StorageFolder folder, string fileName)
-        {
-            return new StorageFile {StorageFolder = folder, FileName = fileName};
-        }
-
         public static string GetLegalPath(string text)
         {
             if (String.IsNullOrEmpty(text)) return text;
@@ -131,17 +118,10 @@ namespace ms.video.downloader.service.Dowload
             return r.Replace(text, "_");
         }
 
-
-        public static bool FileExists(StorageFolder folder, string videoFile)
-        {
-            var file = new StorageFile {StorageFolder = folder, FileName = videoFile};
-            return file.Exists();
-        }
-
         public static void DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFile storageFile, MSYoutubeLoading onYoutubeLoading)
         {
             if (entry.ExecutionStatus != ExecutionStatus.Normal) return;
-            using (var destinationStream = storageFile.OpenStreamForWriteAsync()) {
+            using (var destinationStream = storageFile.OpenStreamForWrite()) {
                 if (destinationStream == null) return;
                 var start = destinationStream.Length;
                 destinationStream.Position = destinationStream.Length;
@@ -167,7 +147,7 @@ namespace ms.video.downloader.service.Dowload
                 try {
                     stream.CopyTo(destinationStream);
                     destinationStream.Flush();
-                } catch (WebException ex) {
+                } catch (WebException) {
                     if (retry) return;
                     AddToFile(entry, uri, destinationStream, start, stop, onYoutubeLoading, storageFile, true);
                 }

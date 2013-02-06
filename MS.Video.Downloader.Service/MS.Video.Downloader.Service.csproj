@@ -64,16 +64,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ApplicationConfiguration.cs" />
-    <Compile Include="Dowload\AudioConverter.cs" />
-    <Compile Include="Dowload\DownloadHelper.cs" />
-    <Compile Include="Dowload\DownloadList.cs" />
-    <Compile Include="Dowload\DownloadLists.cs" />
-    <Compile Include="Dowload\DownloadStatus.cs" />
-    <Compile Include="Dowload\Feed.cs" />
-    <Compile Include="Dowload\KnownFolders.cs" />
-    <Compile Include="Dowload\VideoInfo.cs" />
-    <Compile Include="Dowload\YoutubeEntry.cs" />
-    <Compile Include="Dowload\YoutubeUrl.cs" />
+    <Compile Include="CacheManager.cs" />
+    <Compile Include="Download\AudioConverter.cs" />
+    <Compile Include="Download\DownloadHelper.cs" />
+    <Compile Include="Download\DownloadList.cs" />
+    <Compile Include="Download\DownloadLists.cs" />
+    <Compile Include="Download\DownloadStatus.cs" />
+    <Compile Include="Download\Feed.cs" />
+    <Compile Include="Download\KnownFolders.cs" />
+    <Compile Include="Download\StorageFile.cs" />
+    <Compile Include="Download\StorageFolder.cs" />
+    <Compile Include="Download\VideoInfo.cs" />
+    <Compile Include="Download\YoutubeEntry.cs" />
+    <Compile Include="Download\YoutubeUrl.cs" />
     <Compile Include="Enumerations.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="MSYoutube\MSYoutubeEntry.cs" />

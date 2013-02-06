@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public class DownloadLists : Feed
     {
@@ -94,9 +94,9 @@ namespace ms.video.downloader.service.Dowload
                 list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
                 list.Add(fn);
             }
-            var fileName = KnownFolders.Root.FolderName + "\\" + "music.m3u8";
-            if (File.Exists(fileName)) File.Delete(fileName);
-            File.WriteAllLines(fileName, list, Encoding.UTF8);
+            var playlistFile = KnownFolders.Root.CreateFile("music.m3u8");
+            if (playlistFile.Exists()) playlistFile.Delete();
+            playlistFile.WriteAllLines(list);
 
             list = new List<string> { "#EXTM3U" };
             files = Directory.EnumerateFiles(KnownFolders.VideosLibrary.FolderName, "*.mp4", SearchOption.AllDirectories);
@@ -104,11 +104,11 @@ namespace ms.video.downloader.service.Dowload
                 list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
                 list.Add(fn);
             }
-            fileName = KnownFolders.Root.FolderName + "\\" + "videos.m3u8";
-            if (File.Exists(fileName)) File.Delete(fileName);
-            File.WriteAllLines(fileName, list, Encoding.UTF8);
+            playlistFile = KnownFolders.Root.CreateFile("videos.m3u8");
+            if (playlistFile.Exists()) playlistFile.Delete();
+            playlistFile.WriteAllLines(list);
 
-            Process.Start(fileName);
+            Process.Start(playlistFile.ToString());
         }
 
         public override void Delete()

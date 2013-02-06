@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public class VideoInfo
     {

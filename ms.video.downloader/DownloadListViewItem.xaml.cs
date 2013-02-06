@@ -12,7 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using ms.video.downloader.service;
-using ms.video.downloader.service.Dowload;
+using ms.video.downloader.service.Download;
 
 namespace ms.video.downloader
 {

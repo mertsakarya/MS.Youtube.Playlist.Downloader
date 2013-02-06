@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
 
     public delegate void EntriesReady(ObservableCollection<Feed> entries);
@@ -87,7 +87,7 @@ namespace ms.video.downloader.service.Dowload
             if (nodes == null) return;
             foreach (var node in nodes) {
                 var id = node.Attributes["data-context-item-id"].Value;
-                var youtubeEntry = YoutubeEntry.Create(new Uri("http://www.youtube.com/watch?v=" + id), entry);
+                var youtubeEntry = Create(new Uri("http://www.youtube.com/watch?v=" + id), entry);
                 try {
                     youtubeEntry.Title = node.Attributes["data-context-item-title"].Value;
                     youtubeEntry.ThumbnailUrl = node.SelectSingleNode("//img[@data-thumb]").Attributes["data-thumb"].Value;
@@ -199,20 +199,20 @@ namespace ms.video.downloader.service.Dowload
             // UpdateStatus(DownloadState.DownloadStart, 0.0);
             MediaType = mediaType;
             BaseFolder = KnownFolders.VideosLibrary;
-            ProviderFolder = DownloadHelper.GetFolder(BaseFolder, Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
-            VideoFolder = DownloadHelper.GetFolder(ProviderFolder, DownloadHelper.GetLegalPath(ChannelName));
+            ProviderFolder = BaseFolder.GetFolder(Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
+            VideoFolder = ProviderFolder.GetFolder(DownloadHelper.GetLegalPath(ChannelName));
 
             if (MediaType == MediaType.Audio) {
                 var audioFolder = KnownFolders.MusicLibrary;
-                ProviderFolder = DownloadHelper.GetFolder(audioFolder, Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
-                DownloadFolder = DownloadHelper.GetFolder(ProviderFolder, DownloadHelper.GetLegalPath(ChannelName));
+                ProviderFolder = audioFolder.GetFolder(Enum.GetName(typeof(ContentProviderType), YoutubeUrl.Provider));
+                DownloadFolder = ProviderFolder.GetFolder(DownloadHelper.GetLegalPath(ChannelName));
             }
 
             var videoInCache = false;
             if (!String.IsNullOrEmpty(Title)) {
                 VideoExtension = ".mp4";
                 var videoFile1 = DownloadHelper.GetLegalPath(Title) + VideoExtension;
-                var storageFile1 = DownloadHelper.GetFile(VideoFolder, videoFile1);
+                var storageFile1 = VideoFolder.CreateFile(videoFile1);
                 if (!CacheManager.Instance.NeedsDownload(YoutubeUrl.VideoId, storageFile1))
                     videoInCache = true;
             }
@@ -232,7 +232,7 @@ namespace ms.video.downloader.service.Dowload
                 VideoExtension = videoInfo.VideoExtension;
                 var videoFile = DownloadHelper.GetLegalPath(Title) + VideoExtension;
                 UpdateStatus(DownloadState.TitleChanged, Percentage);
-                var storageFile = DownloadHelper.GetFile(VideoFolder, videoFile);
+                var storageFile = VideoFolder.CreateFile(videoFile);
                 if (CacheManager.Instance.NeedsDownload(YoutubeUrl.VideoId, storageFile)) {
                     CacheManager.Instance.SetFinished(YoutubeUrl.VideoId, storageFile.ToString(), false);
                     DownloadHelper.DownloadToFileAsync(this, videoInfo.DownloadUri, storageFile, OnYoutubeLoading);
@@ -305,11 +305,11 @@ namespace ms.video.downloader.service.Dowload
             if (DownloadState == DownloadState.Error || DownloadState == DownloadState.Ready) return;
             try {
                 var title = DownloadHelper.GetLegalPath(Title);
-                var videoFile = title + VideoExtension;
-                if (DownloadHelper.FileExists(VideoFolder, videoFile)) DownloadHelper.GetFile(VideoFolder, videoFile).DeleteAsync();
+                var videoFile = VideoFolder.CreateFile(title + VideoExtension);
+                if (videoFile.Exists()) videoFile.Delete();
                 if (MediaType == MediaType.Audio) {
-                    var audioFile = title + ".mp3";
-                    if (DownloadHelper.FileExists(DownloadFolder, audioFile)) DownloadHelper.GetFile(DownloadFolder, audioFile).DeleteAsync();
+                    var audioFile = DownloadFolder.CreateFile(title + ".mp3");
+                    if (audioFile.Exists()) audioFile.Delete();
                 }
             } catch { }
             base.Delete();

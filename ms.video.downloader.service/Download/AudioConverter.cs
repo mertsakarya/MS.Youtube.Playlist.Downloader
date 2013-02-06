@@ -8,7 +8,7 @@ using TagLib;
 using File = TagLib.File;
 using Tag = TagLib.Id3v2.Tag;
 
-namespace ms.video.downloader.service.Dowload
+namespace ms.video.downloader.service.Download
 {
     public class AudioConverter
     {
@@ -27,17 +27,13 @@ namespace ms.video.downloader.service.Dowload
         {
             if (_youtubeEntry.DownloadState != DownloadState.DownloadFinish) return;
             var title = DownloadHelper.GetLegalPath(_youtubeEntry.Title);
-            var audioFileName = title + ".mp3";
-            var videoFileName = title + _youtubeEntry.VideoExtension;
-            var fileExists = DownloadHelper.FileExists(_youtubeEntry.VideoFolder, videoFileName);
-            if (!fileExists) return;
-            fileExists = DownloadHelper.FileExists(_youtubeEntry.DownloadFolder, audioFileName);
-            if (fileExists) {
+            var audioFile = _youtubeEntry.DownloadFolder.CreateFile(title + ".mp3");
+            var videoFile = _youtubeEntry.VideoFolder.CreateFile(title + _youtubeEntry.VideoExtension);
+            if (!videoFile.Exists()) return;
+            if (audioFile.Exists()) {
                 if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Ready, 100.0);
             } else {
                 try {
-                    var videoFile = _youtubeEntry.VideoFolder.GetFileAsync(videoFileName);
-                    var audioFile = _youtubeEntry.DownloadFolder.CreateFileAsync(audioFileName);
                     TranscodeFile(videoFile, audioFile);
                 } catch {
                     if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.Error, 100.0);
@@ -45,10 +41,10 @@ namespace ms.video.downloader.service.Dowload
             }
         }
 
-
         protected void TranscodeFile(StorageFile videoFile, StorageFile audioFile)
         {
-            var arguments = String.Format("-i \"{0}\" -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, audioFile);
+            var tmpFile = KnownFolders.TempFolder.CreateFile(Guid.NewGuid().ToString("N") + ".mp3");
+            var arguments = String.Format("-i \"{0}\" -acodec mp3 -y -ac 2 -ab 160 \"{1}\"", videoFile, tmpFile);
             var process = new Process {
                 EnableRaisingEvents = true,
                 StartInfo = {
@@ -72,7 +68,7 @@ namespace ms.video.downloader.service.Dowload
                     }
                     else {
                         if (s.Contains(" time=")) {
-                            TimeSpan current = ParseDuration(" time=", ' ', s);
+                            var current = ParseDuration(" time=", ' ', s);
                             var percentage = (current.TotalMilliseconds / duration.TotalMilliseconds) * 50;
                             if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, DownloadState.DownloadProgressChanged, 50 + percentage );
                         }
@@ -83,12 +79,17 @@ namespace ms.video.downloader.service.Dowload
             DownloadState state;
             if (process.ExitCode == 0) {
                 try {
-                    Tag(audioFile.ToString());
+                    Tag(tmpFile.ToString());
+                    tmpFile.Move(audioFile);
                     state = DownloadState.Ready;
                 } catch {
                     state = DownloadState.Error;
                 }
-            } else state = DownloadState.Error;
+            } else {
+                if(tmpFile.Exists())
+                    tmpFile.Delete();
+                state = DownloadState.Error;
+            }
             if (_onEntryDownloadStatusChange != null) _onEntryDownloadStatusChange(_youtubeEntry, state, 100.0);
             process.Close();
         }
