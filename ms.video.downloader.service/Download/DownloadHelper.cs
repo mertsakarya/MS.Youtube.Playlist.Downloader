@@ -115,7 +115,8 @@ namespace ms.video.downloader.service.Download
             if (String.IsNullOrEmpty(text)) return text;
             var regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
             var r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
-            return r.Replace(text, "_");
+            var t = r.Replace(text, "_");
+            return t.TrimEnd('.');
         }
 
         public static void DownloadToFileAsync(YoutubeEntry entry, Uri uri, StorageFile storageFile, MSYoutubeLoading onYoutubeLoading)

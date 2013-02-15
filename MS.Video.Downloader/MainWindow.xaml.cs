@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,7 +19,7 @@ namespace ms.video.downloader
 {
     public partial class MainWindow : Window
     {
-        public readonly DownloadLists Lists;
+        private readonly DownloadLists Lists;
         private YoutubeUrl _youtubeUrl;
         private YoutubeEntry _youtubeEntry;
         private readonly Settings _settings;
@@ -42,31 +44,56 @@ namespace ms.video.downloader
                 var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
                 Paypal.NavigateToString(paypalHtml);
             }
-            Navigate(new Uri(Url.Text));
+            var uri = new Uri(Url.Text);
+            Navigate(uri);
+            //Task.Factory.StartNew(() => {
+            //    while (true) {
+            //        IHTMLDocument3 doc = null;
+            //        string url = null;
+            //        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => {
+            //            url = Url.Text;
+            //            doc = Browser.Document as IHTMLDocument3;
+            //        }));
+            //        if (doc == null) return;
+            //        var html = doc.documentElement.outerHTML;
+            //        var prevCount = (_youtubeEntry == null) ? 0 : _youtubeEntry.Entries.Count;
+            //        var youtubeEntry = YoutubeEntry.Create(new Uri(url), html);
+            //        if (youtubeEntry != null && youtubeEntry.Entries.Count != prevCount) {
+            //            Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { 
+            //                _youtubeEntry = youtubeEntry;
+            //                Loading();
+            //            }));
+            //        }
+            //        Thread.Sleep(500);
+            //    }
+            //});
+
         }
 
         private void Loading(bool show = true)
         {
-            GetList.Visibility = Visibility.Collapsed;
-            GetVideo.Visibility = Visibility.Collapsed;
-            GetPage.Visibility = Visibility.Collapsed;
-            ConvertMp3.Visibility = Visibility.Collapsed;
+            GetList.IsEnabled = false;
+            GetVideo.IsEnabled = false;
+            ConvertMp3.IsEnabled = false;
+            GetPage.IsEnabled = false;
+            GetPage.Content = String.Format(" Download Page ");
             if (!show) return;
-            if (!(_youtubeEntry == null || _youtubeEntry.Entries == null || _youtubeEntry.Entries.Count == 0)) {
-                GetPage.Visibility = Visibility.Visible;
+            if (!(_youtubeEntry == null || _youtubeEntry.Entries.Count == 0)) {
+                GetPage.IsEnabled = true;
+                ConvertMp3.IsEnabled = true;
                 GetPage.Content = String.Format(" Download Page ({0}) ", _youtubeEntry.Entries.Count);
             }
             if (_youtubeUrl == null) return;
             switch (_youtubeUrl.Type) {
                 case VideoUrlType.Channel:
-                    GetList.Visibility = Visibility.Visible;
-                    ConvertMp3.Visibility = Visibility.Visible;
+                    GetList.IsEnabled = true;
+                    ConvertMp3.IsEnabled = true;
                     break;
                 case VideoUrlType.Video:
                     if (_youtubeUrl.ChannelId != "")
-                        GetList.Visibility = Visibility.Visible;
-                    GetVideo.Visibility = Visibility.Visible;
-                    ConvertMp3.Visibility = Visibility.Visible;
+                        GetList.IsEnabled = true;
+                    GetVideo.IsEnabled = true;
+                    ConvertMp3.IsEnabled = true;
                     break;
             }
         }
@@ -76,11 +103,10 @@ namespace ms.video.downloader
             Url.Text = e.Uri.ToString();
             MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), _settings.Guid});
             _youtubeUrl = YoutubeUrl.Create(e.Uri);
-            var doc = Browser.Document as IHTMLDocument3;
-            if (doc != null) {
-                var html = doc.documentElement.outerHTML;
-                _youtubeEntry = YoutubeEntry.Create(e.Uri, html);
-            }
+            var doc = Browser.Document as IHTMLDocument3; ;
+            if (doc == null) return;
+            var html = doc.documentElement.outerHTML;
+            _youtubeEntry = YoutubeEntry.Create(e.Uri, html);
             Loading();
         }
 
@@ -226,6 +252,11 @@ namespace ms.video.downloader
         private void Window_Closing_1(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _settings.SaveDownloadLists(Lists);
+        }
+
+        private void Browser_Navigating(object sender, NavigatingCancelEventArgs e)
+        {
+            Loading();
         }
 
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
 using ms.video.downloader.service.MSYoutube;
 
@@ -83,6 +84,7 @@ namespace ms.video.downloader.service.Download
             } catch {
                 entry.Title = "";
             }
+
             var nodes = doc.DocumentNode.SelectNodes("//*[@data-context-item-id]"); //[@class contains 'feed-item-container']
             if (nodes == null) return;
             foreach (var node in nodes) {
@@ -93,12 +95,12 @@ namespace ms.video.downloader.service.Download
                     youtubeEntry.ThumbnailUrl = node.SelectSingleNode("//img[@data-thumb]").Attributes["data-thumb"].Value;
                     if (!(youtubeEntry.ThumbnailUrl.StartsWith("http:") || youtubeEntry.ThumbnailUrl.StartsWith("https:")))
                         youtubeEntry.ThumbnailUrl = "http://" + youtubeEntry.ThumbnailUrl;
-                } catch {}
+                } catch { }
                 entry.Entries.Add(youtubeEntry);
             }
         }
 
-        public YoutubeEntry(YoutubeEntry parent = null)
+        private YoutubeEntry(YoutubeEntry parent = null)
         {
             Parent = parent;
             _settings = new MSYoutubeSettings( "MS.Youtube.Downloader", "AI39si76x-DO4bui7H1o0P6x8iLHPBvQ24exnPiM8McsJhVW_pnCWXOXAa1D8-ymj0Bm07XrtRqxBC7veH6flVIYM7krs36kQg" ) {AutoPaging = true, PageSize = 50};
