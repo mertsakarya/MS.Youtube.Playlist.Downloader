@@ -8,6 +8,8 @@
             <local:DatabindingEntryConverter x:Key="EntryConverter" />
             <local:DatabindingPauseButtonContentConverter x:Key="PauseContentConverter" />
             <local:DatabindingProgressBarColorConverter x:Key="ProgressBarColorConverter" />
+            <local:BooleanToVisibilityConverter x:Key="VisibilityConverter"/>
+            <local:OppositeBooleanToVisibilityConverter x:Key="OppositeVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

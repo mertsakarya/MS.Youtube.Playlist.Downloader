@@ -13,6 +13,7 @@ using System.Windows.Threading;
 using Newtonsoft.Json;
 using ms.video.downloader.service;
 using ms.video.downloader.service.Download;
+using ms.video.downloader.service.S3;
 using mshtml;
 
 namespace ms.video.downloader
@@ -37,11 +38,11 @@ namespace ms.video.downloader
 
         private void Window_Loaded_1(object sender, RoutedEventArgs e)
         {
-            DownloadStatusGrid.DataContext = Lists;
+            //DownloadStatusGrid.DataContext = Lists;
             DownloadStatusGrid.ItemsSource = Lists.Entries;
             if (!_settings.IsDevelopment) {
                 var firstTimeString = (_settings.FirstTime ? "mixpanel.track('Installed', {Version:'" + _settings.Version + "'});" : "");
-                var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
+                var paypalHtml = Properties.Resources.TrackerHtml.Replace("|0|", _settings.ApplicationConfiguration.Guid.ToString()).Replace("|1|", firstTimeString).Replace("|2|", _settings.Version);
                 Paypal.NavigateToString(paypalHtml);
             }
             var uri = new Uri(Url.Text);
@@ -101,7 +102,7 @@ namespace ms.video.downloader
         private void Browser_LoadCompleted(object sender, NavigationEventArgs e)
         {
             Url.Text = e.Uri.ToString();
-            MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), _settings.Guid});
+            MixpanelTrack("Navigated", new {Url = e.Uri.ToString(), Guid = _settings.ApplicationConfiguration.Guid});
             _youtubeUrl = YoutubeUrl.Create(e.Uri);
             var doc = Browser.Document as IHTMLDocument3; ;
             if (doc == null) return;
@@ -151,7 +152,7 @@ namespace ms.video.downloader
                 if (list.Count == 0) return;
                 var mediaType = (!ConvertMp3.IsChecked.HasValue) ? MediaType.Video : (ConvertMp3.IsChecked.Value) ? MediaType.Audio : MediaType.Video;
                 Lists.Add(list, mediaType);
-                MixpanelTrack("Download", new {_settings.Guid});
+                MixpanelTrack("Download", new {Guid = _settings.ApplicationConfiguration.Guid});
             }));
         }        
         
@@ -181,7 +182,7 @@ namespace ms.video.downloader
                         ProgressBar.Value = percentage;
                         break;
                     case DownloadState.TitleChanged:
-                        MixpanelTrack("Download", new {entry.Title, _settings.Guid});
+                        MixpanelTrack("Download", new {entry.Title, Guid = _settings.ApplicationConfiguration.Guid});
                         break;
                 }
                 Log.Text = (entry != null) ? entry.ToString() : "";

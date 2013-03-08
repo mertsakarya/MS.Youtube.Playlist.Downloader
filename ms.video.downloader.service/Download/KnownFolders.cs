@@ -4,9 +4,10 @@ namespace ms.video.downloader.service.Download
 {
     public static class KnownFolders
     {
+        public static readonly string RootFolderName = "MS.Video.Downloader";
         public static readonly StorageFolder ApplicationData = new StorageFolder(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
         public static readonly StorageFolder Desktop = new StorageFolder { FolderName = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) };
-        public static  readonly StorageFolder Root = Desktop.GetFolder("MS.Video.Downloader");
+        public static  readonly StorageFolder Root = Desktop.GetFolder(RootFolderName);
         public static readonly StorageFolder VideosLibrary = Root.GetFolder("Video");
         public static readonly StorageFolder MusicLibrary = Root.GetFolder("Music");
         public static readonly StorageFolder CompanyFolder = ApplicationData.GetFolder("ms");

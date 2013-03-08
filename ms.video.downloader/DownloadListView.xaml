@@ -5,10 +5,45 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:ms.video.downloader"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="600" d:DesignWidth="1024">
     <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <Label Content="Current Downloads" FontSize="18" FontWeight="Bold" />
-        <ListView x:Name="DownloadListGrid" Margin="0,35,0,0"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SelectionChanged="DownloadListGrid_SelectionChanged">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,35,0,0" HorizontalAlignment="Right" Width="359">
+                <Label Margin="20,0,0,0" Content="Amazon S3 Synchronization" FontSize="18" FontWeight="Bold" />
+                <TextBlock Margin="20,0,0,0" Padding="10,10,10,20" Text="Amazon cloud synching allows you to backup your media to Amazon. Also if you have more than one instance of MS Video Downloader on different machines this feature enables you to synchronize all media." FontSize="14" TextWrapping="Wrap" />
+                <CheckBox x:Name="active" Content="Active" Margin="30,10,0,0" Height="38" FontWeight="Bold" FontSize="18" Click="ButtonBase_OnClick" />
+                <StackPanel Margin="20,0,0,0" Visibility="{Binding ElementName=active, Path=IsChecked, Converter={StaticResource OppositeVisibilityConverter}}">
+                    <StackPanel Height="60"  >
+                        <Label Content="Access key" FontSize="14" />
+                        <TextBox x:Name="accessKey" Margin="10,0,0,0" HorizontalAlignment="Left" Width="224" Height="24"/>
+                    </StackPanel>
+                    <StackPanel Height="60" >
+                        <Label Content="Secret access key" FontSize="14" />
+                        <TextBox x:Name="secretKey" Margin="10,0,0,0" HorizontalAlignment="Left" Width="224" Height="24"/>
+                    </StackPanel>
+                    <StackPanel Height="60" >
+                        <Label Content="Region" FontSize="14" />
+                        <ComboBox x:Name="region" Margin="10,0,0,0" HorizontalAlignment="Left" Width="224" Height="24" SelectionChanged="region_SelectionChanged"/>
+                    </StackPanel>
+                    <StackPanel Height="60" >
+                        <Label Content="Buckets" FontSize="14" />
+                        <ComboBox x:Name="bucketName" Margin="10,0,0,0" HorizontalAlignment="Left" Width="224" Height="24" />
+                    </StackPanel>
+                    <Button Height="30" Content="Save" Margin="10,0,227,0" Click="ButtonBase_OnClick"/>
+                </StackPanel>
+                <StackPanel x:Name="status" Margin="30,20,0,0" Height="200"  Visibility="{Binding ElementName=active, Path=IsChecked, Converter={StaticResource VisibilityConverter}}">
+                    <Label Content="Status" FontSize="18" FontWeight="Bold" />
+                    <Label x:Name="cloudTotal" Content="3 files on cloud (Bucket: s.mskatusha.com)" FontSize="14" />
+                    <Label x:Name="localTotal" Content="3 files on local" FontSize="14" />
+                    <Label x:Name="uploading" Content="1/3 uploading" FontSize="14" />
+                    <Label x:Name="downloading" Content="2/17 downloading" FontSize="14" />
+                    <Label x:Name="matching" Content="1 matching" FontSize="14" />
+                    <Label x:Name="notProcessed" Content="1 not processed" FontSize="14" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+        <ListView x:Name="DownloadListGrid" Margin="15,35,359,0"  VerticalAlignment="Stretch" SelectionChanged="DownloadListGrid_SelectionChanged">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10,2,2,2" MouseDown="Grid_MouseDown_1">

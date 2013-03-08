@@ -42,6 +42,9 @@
     <AssemblyOriginatorKeyFile>MS.Video.Downloader.Key.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AWSSDK">
+      <HintPath>..\packages\AWSSDK.1.5.15.0\lib\AWSSDK.dll</HintPath>
+    </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\packages\HtmlAgilityPack.1.4.6\lib\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
@@ -78,6 +81,8 @@
     <Compile Include="Download\YoutubeEntry.cs" />
     <Compile Include="Download\YoutubeUrl.cs" />
     <Compile Include="Enumerations.cs" />
+    <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="S3\S3FileSystem.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="MSYoutube\MSYoutubeEntry.cs" />
     <Compile Include="MSYoutube\MSYoutubeRequest.cs" />

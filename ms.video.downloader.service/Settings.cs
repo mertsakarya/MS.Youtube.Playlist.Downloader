@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Newtonsoft.Json;
 using ms.video.downloader.service.Download;
+using ms.video.downloader.service.S3;
 
 namespace ms.video.downloader.service
 {
@@ -14,12 +17,13 @@ namespace ms.video.downloader.service
             get { return _instance ?? (_instance = new Settings()); }
         }
 
-        private const string DevelopmentVersion = "0.0.0.1";
-        private const string SettingsFileName = "settings.json";
-        private const string DownloadsFileName = "downloads.json";
+        private static string DevelopmentVersion = "0.0.0.1";
+        private static string SettingsFileName = "settings.json";
+        private static string DownloadsFileName = "downloads.json";
 
         private readonly ApplicationConfiguration _configuration;
         private readonly StorageFolder _appVersionFolder;
+        private S3FileSystem _fileSystem;
         public string Version { get; private set; }
 
         public bool IsDevelopment
@@ -27,9 +31,20 @@ namespace ms.video.downloader.service
             get { return Version.Equals(DevelopmentVersion); }
         }
 
-        public Guid Guid
+        public ApplicationConfiguration ApplicationConfiguration
         {
-            get { return _configuration.Guid; }
+            get { return _configuration; }
+        }
+
+        public S3FileSystem FileSystem
+        {
+            get { return _fileSystem; }
+        }
+
+        public void UpdateConfiguration()
+        {
+            SetApplicationConfiguration(_configuration);
+            _fileSystem = new S3FileSystem(_configuration.S3AccessKey, _configuration.S3SecretAccessKey, _configuration.S3RegionHost, _configuration.S3BucketName);
         }
 
         public bool FirstTime { get; private set; }
@@ -50,10 +65,14 @@ namespace ms.video.downloader.service
             //DbCache = new DbCache(AppVersionFolder + "\\ms.video.downloader.settings.sqlite");
             _configuration = GetApplicationConfiguration();
 
-            if (_configuration != null) return;
+            if (_configuration != null) {
+                _fileSystem = new S3FileSystem(_configuration.S3AccessKey, _configuration.S3SecretAccessKey, _configuration.S3RegionHost, _configuration.S3BucketName);
+                return;
+            }
             FirstTime = true;
-            _configuration = new ApplicationConfiguration {Guid = Guid.NewGuid()};
+            _configuration = new ApplicationConfiguration {Guid = Guid.NewGuid(), S3IsActive = false};
             SetApplicationConfiguration(_configuration);
+            _fileSystem = new S3FileSystem(_configuration.S3AccessKey, _configuration.S3SecretAccessKey, _configuration.S3RegionHost, _configuration.S3BucketName);
         }
 
         private void SetApplicationConfiguration(ApplicationConfiguration configuration) { SetFile(_appVersionFolder.CreateFile(SettingsFileName), configuration); }
