@@ -88,11 +88,12 @@ namespace ms.video.downloader.service.Download
 
         public void UpdatePlaylists()
         {
+            var pos = KnownFolders.Root.FolderName.Length + 1;
             var list = new List<string> { "#EXTM3U" };
             var files = Directory.EnumerateFiles(KnownFolders.MusicLibrary.FolderName, "*.mp3", SearchOption.AllDirectories);
             foreach (var fn in files) {
                 list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
-                list.Add(fn);
+                list.Add(fn.Substring(pos).ToLowerInvariant().Replace('\\', '/'));
             }
             var playlistFile = KnownFolders.Root.CreateFile("music.m3u8");
             if (playlistFile.Exists()) playlistFile.Delete();
@@ -102,7 +103,7 @@ namespace ms.video.downloader.service.Download
             files = Directory.EnumerateFiles(KnownFolders.VideosLibrary.FolderName, "*.mp4", SearchOption.AllDirectories);
             foreach (var fn in files) {
                 list.Add(string.Format("#EXTINF:0,{0}", Path.GetFileNameWithoutExtension(fn)));
-                list.Add(fn);
+                list.Add(fn.Substring(pos).ToLowerInvariant().Replace('\\', '/'));
             }
             playlistFile = KnownFolders.Root.CreateFile("videos.m3u8");
             if (playlistFile.Exists()) playlistFile.Delete();

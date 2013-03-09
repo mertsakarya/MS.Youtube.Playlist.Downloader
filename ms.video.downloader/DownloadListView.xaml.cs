@@ -47,21 +47,34 @@ namespace ms.video.downloader
             active.IsChecked = _appConfig.S3CanBeActive && _appConfig.S3IsActive;
             accessKey.Text = _appConfig.S3AccessKey;
             secretKey.Text = _appConfig.S3SecretAccessKey;
-            region.ItemsSource = S3FileSystem.S3EndPoints;
-            if (!String.IsNullOrWhiteSpace(_appConfig.S3RegionHost)) {
-                foreach (var item in S3FileSystem.S3EndPoints) {
-                    if (item.EndPoint == _appConfig.S3RegionHost) {
-                        region.SelectedItem = item;
+            UpdateS3ComboBoxes();
+        }
+
+        private void UpdateS3ComboBoxes()
+        {
+            if (_appConfig.S3CanSelectRegion) {
+                region.ItemsSource = S3FileSystem.S3EndPoints;
+                if (!String.IsNullOrWhiteSpace(_appConfig.S3RegionHost)) {
+                    foreach (var item in S3FileSystem.S3EndPoints) {
+                        if (item.EndPoint == _appConfig.S3RegionHost)
+                            region.SelectedItem = item;
                     }
                 }
-            }
-            if (!String.IsNullOrWhiteSpace(_appConfig.S3BucketName)) {
-                FillBuckets(_appConfig.S3BucketName);
-            }
-            region.IsEnabled = _appConfig.S3CanSelectRegion;
-            bucketName.IsEnabled = _appConfig.S3CanSelectBucket;
-            if (Settings.Instance.ApplicationConfiguration.S3IsActive) {
-                Settings.Instance.FileSystem.Sync(S3StatusChanged);
+                region.IsEnabled = true;
+                if (_appConfig.S3CanSelectBucket) {
+                    bucketName.IsEnabled = true;
+                    FillBuckets(_appConfig.S3BucketName);
+                    if (Settings.Instance.ApplicationConfiguration.S3IsActive && Settings.Instance.ApplicationConfiguration.S3CanBeActive)
+                        Settings.Instance.FileSystem.Sync(S3StatusChanged);
+                } else {
+                    _appConfig.S3BucketName = "";
+                    bucketName.IsEnabled = false;
+                }
+            } else {
+                _appConfig.S3BucketName = "";
+                _appConfig.S3RegionHost = "";
+                region.IsEnabled = false;
+                bucketName.IsEnabled = false;
             }
         }
 
@@ -79,16 +92,45 @@ namespace ms.video.downloader
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
-            _appConfig.S3AccessKey = accessKey.Text ?? "";
-            _appConfig.S3BucketName = bucketName.Text ?? "";
-            _appConfig.S3RegionHost = region.SelectedItem != null ? (region.SelectedItem as S3EndPoint).EndPoint : "";
-            _appConfig.S3SecretAccessKey = secretKey.Text ?? "";
+            var changed = active.IsChecked != _appConfig.S3IsActive || accessKey.Text != _appConfig.S3AccessKey || secretKey.Text != _appConfig.S3SecretAccessKey || region.Text != _appConfig.S3RegionHost;
+            var s3EndPoint = region.SelectedItem as S3EndPoint;
+            if (s3EndPoint != null && s3EndPoint.EndPoint != _appConfig.S3RegionHost) changed = true;
+            if (!changed) return;
             if (_appConfig.S3IsActive) Settings.Instance.FileSystem.StopSync();
-            _appConfig.S3IsActive = active.IsChecked ?? false;
-            region.IsEnabled = _appConfig.S3CanSelectRegion;
-            bucketName.IsEnabled = _appConfig.S3CanSelectBucket;
+
+            _appConfig.S3AccessKey = accessKey.Text ?? "";
+            _appConfig.S3SecretAccessKey = secretKey.Text ?? "";
+            if (_appConfig.S3CanSelectRegion) {
+                var regionItem = region.SelectedItem as S3EndPoint;
+                if (regionItem != null) {
+                    _appConfig.S3RegionHost = regionItem.EndPoint;
+                    if (_appConfig.S3CanSelectBucket) {
+                        _appConfig.S3BucketName = bucketName.Text ?? "";
+                        if (_appConfig.S3CanBeActive)
+                            _appConfig.S3IsActive = active.IsChecked ?? false;
+                        else {
+                            _appConfig.S3IsActive = false;
+                            active.IsChecked = false;
+                        }
+                        region.IsEnabled = true;
+                        bucketName.IsEnabled = true;
+                    } else {
+                        _appConfig.S3IsActive = false;
+                        _appConfig.S3BucketName = "";
+                        bucketName.IsEnabled = false;
+                        active.IsChecked = false;
+                    }
+                }
+            } else {
+                _appConfig.S3IsActive = false;
+                _appConfig.S3BucketName = "";
+                _appConfig.S3RegionHost = "";
+                active.IsChecked = false;
+                region.IsEnabled = false;
+                bucketName.IsEnabled = false;
+            }
             Settings.Instance.UpdateConfiguration();
-            if(_appConfig.S3IsActive)
+            if (_appConfig.S3IsActive && _appConfig.S3CanBeActive)
                 Settings.Instance.FileSystem.Sync(S3StatusChanged);
         }
 
@@ -158,10 +200,13 @@ namespace ms.video.downloader
                 if (list.Count > 0) {
                     bucketName.ItemsSource = list;
                     bucketName.IsEnabled = _appConfig.S3CanSelectBucket;
-                    if (bucket != null)
+                    if (!String.IsNullOrWhiteSpace(bucket))
                         bucketName.SelectedItem = bucket;
                 } else bucketName.IsEnabled = false;
-            } catch (Exception) {}
+            } catch (Exception) 
+            {
+                
+            }
         }
     }
 }

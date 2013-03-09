@@ -61,6 +61,8 @@ namespace ms.video.downloader.service.S3
             new S3EndPoint {Region="Asia Pacific (Tokyo)",  EndPoint = "s3-ap-northeast-1.amazonaws.com", Location = "ap-northeast-1"},
             new S3EndPoint {Region="South America (Sao Paulo)",  EndPoint = "s3-sa-east-1.amazonaws.com", Location = "sa-east-1"},
         };
+        private static Dictionary<string, List<string>> BucketDictionary = new Dictionary<string, List<string>>();
+
         enum ProcessAction : byte { Empty = 0, Upload, Download, UploadingDone, UploadingException, Match, DownloadingDone, DownloadingException }
         private class ProcessItem
         {
@@ -79,9 +81,6 @@ namespace ms.video.downloader.service.S3
         private Task _task = null;
         private CancellationTokenSource _tokenSource;
         //private AmazonS3Client _client;
-
-        public S3StausChangedEventHandler OnS3StausChanged;
-
 
         public S3FileSystem(string accessKey, string secretAccessKey, string serviceUrl, string bucketName)
         {
@@ -231,12 +230,16 @@ namespace ms.video.downloader.service.S3
 
         public List<string> GetBuckets()
         {
+            var key = String.Format("{0}|{1}|{2}", _accessKey, _secretAccessKey, _serviceUrl);
+            if (BucketDictionary.ContainsKey(key)) 
+                return BucketDictionary[key];
             var list = new List<string>();
             using (var client = CreateAmazonS3Client()) {
                 if (client == null) return list;
                 var response = client.ListBuckets();
                 foreach(var item in response.Buckets)
                     list.Add(item.BucketName);
+                BucketDictionary.Add(key, list);
                 return list;
             }
         }
@@ -244,7 +247,10 @@ namespace ms.video.downloader.service.S3
         private void Upload(ProcessItem file)
         {
             using (var client = CreateAmazonS3Client()) {
-                if (client == null) return;
+                if (client == null) {
+                    file.Action = ProcessAction.UploadingException;
+                    return;
+                }
                 var localpath = HttpUtility.UrlEncode(file.LocalPath.Substring(_pos));
                 var metadata = new NameValueCollection {
                     {"LocalSize", file.LocalSize.ToString(CultureInfo.InvariantCulture)}, 
@@ -269,7 +275,46 @@ namespace ms.video.downloader.service.S3
 
         private void Download(ProcessItem file)
         {
-            
+            using (var client = CreateAmazonS3Client()) {
+                file.Action = ProcessAction.DownloadingException;
+                if (client == null) return;
+                try {
+                    var request = new GetObjectRequest();
+                    request.WithBucketName(_bucketName).WithKey(file.S3Path);
+                    using (var response = client.GetObject(request)) {
+                        var fileName = "";
+                        if (response.Metadata != null && response.Metadata.Count > 0) {
+                            var localPath = response.Metadata.Get("LocalPath");
+                            if (String.IsNullOrWhiteSpace(localPath)) return;
+                            localPath = HttpUtility.UrlDecode(localPath);
+                            if (localPath != null) {
+                                var localPathArr = localPath.Split('\\');
+                                var rootDirectory = KnownFolders.Root.FolderName;
+                                for (var i = 1; i < localPathArr.Length - 2; i++) {
+                                    rootDirectory = Path.Combine(rootDirectory, localPathArr[i]);
+                                    if(!Directory.Exists(rootDirectory))
+                                        Directory.CreateDirectory(rootDirectory);
+                                }
+                                fileName = Path.Combine(rootDirectory, localPathArr[localPathArr.Length - 1]);
+                            }
+                        }
+                        if (String.IsNullOrWhiteSpace(fileName))  return;
+                        using (var fileStream = new FileStream(fileName, FileMode.Create)) {
+                            using (var stream = response.ResponseStream) {
+                                var data = new byte[32768];
+                                int bytesRead;
+                                do {
+                                    bytesRead = stream.Read(data, 0, data.Length);
+                                    fileStream.Write(data, 0, bytesRead);
+                                } while (bytesRead > 0);
+                                fileStream.Flush();
+                                file.Action = ProcessAction.DownloadingDone;
+                            }
+                        }
+                    }
+                } catch (Exception) {
+                }
+            }
         }
 
         private Dictionary<string, ProcessItem> GetFiles()
