@@ -8,7 +8,7 @@
                 <Grid  VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="32">
                     <Button x:Name="GoBack" Content="&lt;" HorizontalAlignment="Left" Height="32" Margin="0,0,0,0" VerticalAlignment="Top" Click="GoBack_Click" Width="32" Grid.RowSpan="2" />
                     <Button x:Name="GoForward" Content="&gt;" HorizontalAlignment="Left" Height="32" Margin="32,0,0,0"  VerticalAlignment="Top" Click="GoForward_Click" Width="32" Grid.RowSpan="2" />
-                    <TextBox x:Name="Url" Text="http://www.youtube.com/" Margin="64,0,564,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" KeyUp="Url_KeyUp" />
+                    <TextBox x:Name="Url" Text="https://www.youtube.com/" Margin="64,0,564,0" Height="32" VerticalAlignment="Top" FontSize="18" FontWeight="Bold" VerticalContentAlignment="Center" KeyUp="Url_KeyUp" />
                     <StackPanel Orientation="Horizontal" Height="32" VerticalAlignment="Bottom" Margin="0,0,79,0" HorizontalAlignment="Right" Width="480" >
                         <CheckBox x:Name="ConvertMp3" Content="Convert to MP3 " HorizontalAlignment="Left" Height="18" VerticalAlignment="Center" IsChecked="True" />
                         <Button x:Name="GetVideo" Content=" Download Video " HorizontalAlignment="Stretch" Height="32" VerticalAlignment="Top" Click="GetVideo_Click"/>

@@ -155,21 +155,26 @@ namespace ms.video.downloader.service.S3
                 }
             }
             UpdateStatus(eventHandler, files, list);
-
-            foreach (var file in files) {
-                switch (file.Value.Action) {
-                    case ProcessAction.Download:
-                        Download(file.Value);
-                        UpdateStatus(eventHandler, files, list);
-                        break;
-                    case ProcessAction.Upload:
+            Task.Factory.StartNew(() => {
+                foreach (var file in files) {
+                    if (file.Value.Action == ProcessAction.Upload) {
                         Upload(file.Value);
                         UpdateStatus(eventHandler, files, list);
-                        break;
+                    }
+                    if (token.IsCancellationRequested)
+                        return;
                 }
-                if (token.IsCancellationRequested) 
-                    return;
-            }
+            });
+            Task.Factory.StartNew(() => {
+                foreach (var file in files) {
+                    if (file.Value.Action == ProcessAction.Download) {
+                        Download(file.Value);
+                        UpdateStatus(eventHandler, files, list);
+                    }
+                    if (token.IsCancellationRequested)
+                        return;
+                }
+            });
         }
 
         private void UpdateStatus(S3StausChangedEventHandler eventHandler, Dictionary<string, ProcessItem> files, Dictionary<string, S3Object> list)
@@ -284,13 +289,13 @@ namespace ms.video.downloader.service.S3
                     using (var response = client.GetObject(request)) {
                         var fileName = "";
                         if (response.Metadata != null && response.Metadata.Count > 0) {
-                            var localPath = response.Metadata.Get("LocalPath");
+                            var localPath = response.Metadata.Get("x-amz-meta-localpath");
                             if (String.IsNullOrWhiteSpace(localPath)) return;
                             localPath = HttpUtility.UrlDecode(localPath);
                             if (localPath != null) {
                                 var localPathArr = localPath.Split('\\');
                                 var rootDirectory = KnownFolders.Root.FolderName;
-                                for (var i = 1; i < localPathArr.Length - 2; i++) {
+                                for (var i = 1; i < localPathArr.Length - 1; i++) {
                                     rootDirectory = Path.Combine(rootDirectory, localPathArr[i]);
                                     if(!Directory.Exists(rootDirectory))
                                         Directory.CreateDirectory(rootDirectory);
